@@ -1,0 +1,69 @@
+@import './assets/Inter/inter.css';
+@import 'frappe-ui/src/style.css';
+
+:root {
+    color-scheme: light;
+}
+
+html,
+body,
+#app {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+body {
+    margin: 0;
+    background: #f7f9fc;
+}
+
+@media (max-width: 900px) {
+
+    .shared-sidebar {
+        display: none;
+    }
+
+    .shared-mobile-topbar {
+        display: flex;
+    }
+
+    .app-shell,
+    .page-shell,
+    .main-content,
+    .main {
+        box-sizing: border-box;
+        padding-top: 64px;
+        padding-bottom: 12px;
+    }
+
+    .main-content,
+    .main {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+
+    .content,
+    .content-container,
+    .content-wrap {
+        box-sizing: border-box;
+        padding-top: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+
+    .app-shell,
+    .page-shell,
+    .main-content,
+    .main {
+        padding-top: 60px;
+        padding-bottom: 10px;
+    }
+
+    .content,
+    .content-container,
+    .content-wrap {
+        padding-top: 6px;
+    }
+}
