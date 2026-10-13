@@ -1080,7 +1080,7 @@ export default {
 
       departmentFilter: '',
 
-      deskBaseUrl: 'http://erpnext.localhost:8000',
+      deskBaseUrl: window.location.origin,
 
 
 

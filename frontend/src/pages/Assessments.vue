@@ -386,7 +386,7 @@ const courseFilter = ref('')
 const groupFilter = ref('')
 const examinerFilter = ref('')
 
-const deskBaseUrl = 'http://erpnext.localhost:8000'
+const deskBaseUrl = window.location.origin
 
 const deskListUrl = `${deskBaseUrl}/desk/assessment-plan`
 

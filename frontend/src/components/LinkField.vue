@@ -60,7 +60,7 @@ import { apiGet } from '@/lib/api'
 
 const cache = new Map()
 
-const DESK_BASE = 'http://erpnext.localhost:8000'
+const DESK_BASE = window.location.origin
 
 function doctypeRoute(doctype) {
   return doctype.toLowerCase().replace(/\s+/g, '-')

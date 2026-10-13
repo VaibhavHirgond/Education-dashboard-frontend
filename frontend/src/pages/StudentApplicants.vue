@@ -253,7 +253,7 @@ export default {
       yearOptions: [],
       termOptions: [],
       context: null,
-      deskBaseUrl: 'http://erpnext.localhost:8000',
+      deskBaseUrl: window.location.origin,
     }
   },
 

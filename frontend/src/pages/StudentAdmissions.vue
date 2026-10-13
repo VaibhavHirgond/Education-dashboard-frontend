@@ -139,7 +139,7 @@ export default {
       admissions: [],
       loading: true,
       error: null,
-      deskBaseUrl: 'http://erpnext.localhost:8000',
+      deskBaseUrl: window.location.origin,
     }
   },
 

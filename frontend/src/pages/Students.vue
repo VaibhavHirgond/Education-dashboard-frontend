@@ -2083,7 +2083,7 @@ export default {
 
       error: null,
 
-      deskBaseUrl: 'http://erpnext.localhost:8000',
+      deskBaseUrl: window.location.origin,
 
       filters: {
 

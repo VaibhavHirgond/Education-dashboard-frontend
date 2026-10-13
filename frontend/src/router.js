@@ -275,12 +275,10 @@ router.beforeEach(async (to) => {
   const loggedIn = await isLoggedIn()
 
   if (to.meta.requiresAuth && !loggedIn) {
-    return {
-      name: 'Login',
-      query: {
-        redirect: to.fullPath,
-      },
-    }
+    // This frontend is embedded in Frappe Desk.
+    // Use Frappe's login page instead of a disabled Vue Login route.
+    window.top.location.href = '/login'
+    return false
   }
 
   if (to.meta.guestOnly && loggedIn) {

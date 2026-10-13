@@ -547,7 +547,7 @@
             </p>
 
            <a
-  href="http://erpnext.localhost:8000/desk/student-applicant/new-student-applicant-prmpkqagiy"
+  :href="window.location.origin + '/desk/student-applicant/new-student-applicant-prmpkqagiy'"
   class="quick-action-card"
   onclick="window.top.location.href=this.href; return false;"
 >
@@ -573,7 +573,7 @@
             </a>
 
             <a
-  href="http://erpnext.localhost:8000/desk/instructor/new-instructor-tmjocfaadi"
+  :href="window.location.origin + '/desk/instructor/new-instructor-tmjocfaadi'"
   class="quick-action-card"
   onclick="window.top.location.href=this.href; return false;"
 >
@@ -599,7 +599,7 @@
             </a>
 
            <a
-  href="http://erpnext.localhost:8000/desk/query-report/Student%20Fee%20Collection"
+  :href="window.location.origin + '/desk/query-report/Student%20Fee%20Collection'"
   class="quick-action-card"
   onclick="window.top.location.href=this.href; return false;"
 >

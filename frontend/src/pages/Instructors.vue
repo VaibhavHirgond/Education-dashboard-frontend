@@ -649,7 +649,7 @@ const searchQuery = ref('')
 const departmentFilter = ref('')
 const statusFilter = ref('')
 
-const deskBaseUrl = 'http://erpnext.localhost:8000'
+const deskBaseUrl = window.location.origin
 
 const deskListUrl = `${deskBaseUrl}/desk/instructor`
 

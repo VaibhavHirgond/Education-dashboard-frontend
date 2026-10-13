@@ -374,7 +374,7 @@ const programFilter = ref('')
 const batchFilter = ref('')
 const courseFilter = ref('')
 
-const deskBaseUrl = 'http://erpnext.localhost:8000'
+const deskBaseUrl = window.location.origin
 
 const deskListUrl = `${deskBaseUrl}/desk/student-group`
 
