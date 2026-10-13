@@ -10,32 +10,32 @@ const routes = [
   // AUTHENTICATION
   // =========================================================
 
-  {
-    path: '/login',
-    name: 'Login',
-    component: () => import('@/pages/Login.vue'),
-    meta: {
-      guestOnly: true,
-    },
-  },
+  // {
+  //   path: '/login',
+  //   name: 'Login',
+  //   component: () => import('@/pages/Login.vue'),
+  //   meta: {
+  //     guestOnly: true,
+  //   },
+  // },
 
-  {
-    path: '/signup',
-    name: 'Signup',
-    component: () => import('@/pages/Signup.vue'),
-    meta: {
-      guestOnly: true,
-    },
-  },
+  // {
+  //   path: '/signup',
+  //   name: 'Signup',
+  //   component: () => import('@/pages/Signup.vue'),
+  //   meta: {
+  //     guestOnly: true,
+  //   },
+  // },
 
-  {
-    path: '/forgot-password',
-    name: 'ForgotPassword',
-    component: () => import('@/pages/ForgotPassword.vue'),
-    meta: {
-      guestOnly: true,
-    },
-  },
+  // {
+  //   path: '/forgot-password',
+  //   name: 'ForgotPassword',
+  //   component: () => import('@/pages/ForgotPassword.vue'),
+  //   meta: {
+  //     guestOnly: true,
+  //   },
+  // },
 
   // =========================================================
   // MAIN APPLICATION
