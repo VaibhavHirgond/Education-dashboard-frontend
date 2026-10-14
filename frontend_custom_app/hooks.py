@@ -9,6 +9,30 @@ app_license = "mit"
 get_website_user_home_page = "frontend_custom_app.redirects.get_role_home_page"
 
 
+fixtures = [
+    {
+        "dt": "Custom Field",
+        "filters": [
+            [
+                "dt",
+                "in",
+                ["Instructor", "Student", "Course Enrollment"]
+            ]
+        ],
+    },
+    {
+        "dt": "Property Setter",
+        "filters": [
+            [
+                "doc_type",
+                "in",
+                ["Instructor", "Student", "Course Enrollment"]
+            ]
+        ],
+    },
+]
+
+
 # role_home_page = {
 #     "Student": "student-portal",
 # }
