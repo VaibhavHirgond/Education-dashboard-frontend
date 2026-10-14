@@ -301,12 +301,14 @@ export default {
         }
 
         // Drop the cached role and CSRF token so the next sign-in (in
-        // this same SPA session) starts from a clean slate, then move to
-        // the login route in place. "/frontend/..." is not a real page
-        // and used to land on a 404 after every logout.
+        // this same SPA session) starts from a clean slate, then send the
+        // user to Frappe's real login page. The Vue Login route is
+        // commented out, so changing the hash here would only bounce
+        // through the catch-all redirect first. `window.top` because the
+        // app is normally embedded in the Desk iframe.
         clearContext()
         clearCsrfToken()
-        window.location.hash = '#/login'
+        window.top.location.href = '/login'
       } catch (error) {
         console.error('Logout failed:', error)
         this.loggingOut = false

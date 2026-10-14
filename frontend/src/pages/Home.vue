@@ -16,7 +16,7 @@
              dashboard for students/instructors while the context
              request is still in flight.
         ================================================== -->
-        <template v-if="loading || !context">
+        <template v-if="loading">
 
           <section class="hero">
 
@@ -39,6 +39,28 @@
 
           </section>
 
+        </template>
+
+        <!-- Show context errors instead of an endless loading screen. -->
+        <template v-else-if="!context">
+          <section class="hero">
+            <div class="hero-content">
+              <div class="hero-label">
+                <span></span>
+                EDUCATION PORTAL
+              </div>
+
+              <h2>Dashboard could not load</h2>
+
+              <p>
+                {{ error || 'Unable to determine your user role. Please try again.' }}
+              </p>
+
+              <button type="button" @click="refreshDashboard">
+                Try again
+              </button>
+            </div>
+          </section>
         </template>
 
         <!-- =================================================
@@ -547,7 +569,7 @@
             </p>
 
            <a
-  :href="window.location.origin + '/desk/student-applicant/new-student-applicant-prmpkqagiy'"
+  href="/desk/student-applicant/new-student-applicant-prmpkqagiy"
   class="quick-action-card"
   onclick="window.top.location.href=this.href; return false;"
 >
@@ -573,7 +595,7 @@
             </a>
 
             <a
-  :href="window.location.origin + '/desk/instructor/new-instructor-tmjocfaadi'"
+  href="/desk/instructor/new-instructor-tmjocfaadi"
   class="quick-action-card"
   onclick="window.top.location.href=this.href; return false;"
 >
@@ -599,7 +621,7 @@
             </a>
 
            <a
-  :href="window.location.origin + '/desk/query-report/Student%20Fee%20Collection'"
+  href="/desk/query-report/Student%20Fee%20Collection"
   class="quick-action-card"
   onclick="window.top.location.href=this.href; return false;"
 >
@@ -1933,6 +1955,32 @@ padding: 24px 32px;
   font-weight: 700;
 
   cursor: pointer;
+}
+
+/* Retry button inside the "dashboard could not load" hero state
+   (shown when the context request fails, instead of an endless
+   loading screen). */
+.hero-content button {
+  margin-top: 18px;
+
+  padding: 9px 16px;
+
+  border: 0;
+
+  border-radius: 999px;
+
+  color: #453D89;
+
+  background: #ffffff;
+
+  font-size: 11px;
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.hero-content button:hover {
+  background: #f3f2ff;
 }
 
 /* =========================================================
