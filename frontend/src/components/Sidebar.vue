@@ -44,20 +44,7 @@
           </span>
         </button>
 
-        <div class="sidebar-bottom">
-          <div class="sidebar-status">
-            <div class="status-circle"><span></span></div>
-            <div>
-              <strong>Backend Connected</strong>
-              <small>Frappe APIs are available</small>
-            </div>
-          </div>
-
-          <div class="sidebar-version">
-            <span>Education Dashboard</span>
-            <span>v3.0</span>
-          </div>
-        </div>
+       
       </div>
     </aside>
 
@@ -142,21 +129,6 @@
             {{ loggingOut ? 'Logging out…' : 'Logout' }}
           </span>
         </button>
-
-        <div class="sidebar-bottom">
-          <div class="sidebar-status">
-            <div class="status-circle"><span></span></div>
-            <div>
-              <strong>Backend Connected</strong>
-              <small>Frappe APIs are available</small>
-            </div>
-          </div>
-
-          <div class="sidebar-version">
-            <span>Education Dashboard</span>
-            <span>v3.0</span>
-          </div>
-        </div>
       </aside>
     </div>
   </div>
@@ -333,7 +305,7 @@ export default {
   overflow: hidden;
   box-sizing: border-box;
   color: #ffffff;
-  background: var(--theme-sidebar-bg, linear-gradient(180deg, #221E45 0%, #2A2552 52%, #332D66 100%));
+  background: var(--theme-sidebar-bg,linear-gradient(105deg, #453D89, #C8499A));
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 10px 0 35px rgba(34, 30, 69, 0.25);
 }
@@ -441,7 +413,7 @@ export default {
 
 .navigation-active {
   color: #fff;
-  background: var(--theme-sidebar-active, linear-gradient(90deg, rgba(200, 73, 154, 0.22), rgba(69, 61, 137, 0.28)));
+  background: var(--theme-sidebar-active, linear-gradient(105deg, #453D89, #C8499A));
   box-shadow: inset 0 0 0 1px rgba(200, 73, 154, 0.15);
 }
 
@@ -513,7 +485,7 @@ export default {
   padding: 13px;
   border: 1px solid rgba(148, 163, 184, 0.1);
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(148, 163, 184, 0.08), rgba(148, 163, 184, 0.035));
+  background: linear-gradient(105deg, #453D89, #C8499A);
 }
 
 .status-circle {
@@ -594,7 +566,7 @@ export default {
   flex-direction: column;
   padding: 22px 17px;
   color: #fff;
-  background: var(--theme-sidebar-bg, linear-gradient(180deg, #221E45 0%, #2A2552 52%, #332D66 100%));
+  background: var(--theme-sidebar-bg, linear-gradient(105deg, #453D89, #C8499A));
   box-shadow: 12px 0 40px rgba(34, 30, 69, 0.4);
   z-index: 2;
   overflow-y: auto;

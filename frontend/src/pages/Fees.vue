@@ -1114,22 +1114,7 @@
           </section>
 
 
-          <!-- =================================================
-               FOOTER
-          ================================================== -->
-          <footer class="page-footer">
-
-            <span>
-              Education Management System
-            </span>
-
-            <span class="footer-dot"></span>
-
-            <span>
-              Live fee data
-            </span>
-
-          </footer>
+        
 
         </div>
 

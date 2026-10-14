@@ -820,26 +820,7 @@
         </div>
       </section>
 
-      <!-- =====================================================
-           BACKEND CONNECTION
-      ====================================================== -->
-      <section class="backend-status">
-        <div class="connection-icon">
-          ✓
-        </div>
-        <div>
-          <strong>
-            Connected to Frappe Education
-          </strong>
-          <span>
-            Attendance data is being loaded directly from
-            the Student Attendance DocType.
-          </span>
-        </div>
-        <span class="connected-badge">
-          Live Data
-        </span>
-      </section>
+     
 
       <!-- =====================================================
            APPLY FOR LEAVE MODAL (students)
