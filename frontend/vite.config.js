@@ -6,12 +6,15 @@ import { webserver_port } from '../../../sites/common_site_config.json'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: process.env.NODE_ENV === 'production'
+    ? '/assets/frontend_custom_app/frontend/'
+    : '/',
   plugins: [vue()],
   server: {
-  host: true,
-  port: 8080,
-  proxy: getProxyOptions({ port: webserver_port }),
-},
+    host: true,
+    port: 8080,
+    proxy: getProxyOptions({ port: webserver_port }),
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

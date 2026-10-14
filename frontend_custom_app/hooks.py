@@ -5,6 +5,11 @@ app_description = "Frontend Custom Application"
 app_email = "vaibhavhirgond2004@gmail.com"
 app_license = "mit"
 
+
+role_home_page = {
+    "Student": "frontend-custom-app",
+}
+
 # Apps
 # ------------------
 

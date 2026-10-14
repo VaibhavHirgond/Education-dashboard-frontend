@@ -183,10 +183,7 @@
 
         </template>
 
-        <footer class="footer">
-          <span>© 2026 Education Management System</span>
-          <span>Powered by Frappe</span>
-        </footer>
+        
 
       </div>
     </main>

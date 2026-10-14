@@ -651,22 +651,7 @@
         </section>
         </template>
 
-        <StudentDashboard v-else-if="isStudent" />
-
-        <!-- =================================================
-             FOOTER
-        ================================================== -->
-        <footer class="footer">
-
-          <span>
-            © 2026 Education Management System
-          </span>
-
-          <span>
-            Powered by Frappe
-          </span>
-
-        </footer>
+        <StudentDashboard v-else-if="isStudent" />  
 
       </div>
 
@@ -4707,34 +4692,17 @@ padding: 24px 32px;
   padding: 0 18px 18px;
 }
 
-/* Internal scroll for dashboard card content (keeps headers visible). */
+/* Keep the dashboard on the main page scroll instead of creating a nested scrollbar. */
 .scroll-body {
   max-height: none;
-  overflow-y: visible;
-
-  /* Visible, unobtrusive scrollbar (WebKit + Firefox). */
-  scrollbar-width: thin;
-  scrollbar-color: #c7cbe0 transparent;
-
+  overflow: visible;
+  scrollbar-width: none;
   overscroll-behavior: auto;
 }
 
 .scroll-body::-webkit-scrollbar {
-  width: 8px;
-}
-
-.scroll-body::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.scroll-body::-webkit-scrollbar-thumb {
-  background: #c7cbe0;
-
-  border-radius: 999px;
-}
-
-.scroll-body::-webkit-scrollbar-thumb:hover {
-  background: #b0b5d2;
+  width: 0;
+  height: 0;
 }
 
 .student-list {
@@ -4836,10 +4804,6 @@ padding: 24px 32px;
 
   .student-hero-text h2 {
     font-size: 16px;
-  }
-
-  .scroll-body {
-    max-height: 200px;
   }
 }
 
