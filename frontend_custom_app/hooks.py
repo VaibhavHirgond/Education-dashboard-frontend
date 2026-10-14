@@ -6,9 +6,12 @@ app_email = "vaibhavhirgond2004@gmail.com"
 app_license = "mit"
 
 
-role_home_page = {
-    "Student": "student-portal",
-}
+get_website_user_home_page = "frontend_custom_app.redirects.get_role_home_page"
+
+
+# role_home_page = {
+#     "Student": "student-portal",
+# }
 
 # Apps
 # ------------------
