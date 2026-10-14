@@ -7,7 +7,7 @@ app_license = "mit"
 
 
 role_home_page = {
-    "Student": "frontend-custom-app",
+    "Student": "student-portal",
 }
 
 # Apps
