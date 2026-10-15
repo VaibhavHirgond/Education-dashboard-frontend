@@ -417,9 +417,44 @@ export default {
 
   mounted() {
     this.load()
+    this.$nextTick(() => this.reportDashboardHeight())
+
+    this._dashboardResizeObserver = new ResizeObserver(() => {
+      this.reportDashboardHeight()
+    })
+
+    this._dashboardResizeObserver.observe(this.$el)
+    window.addEventListener('resize', this.reportDashboardHeight)
+  },
+
+  beforeUnmount() {
+    if (this._dashboardResizeObserver) {
+      this._dashboardResizeObserver.disconnect()
+    }
+
+    window.removeEventListener('resize', this.reportDashboardHeight)
   },
 
   methods: {
+    reportDashboardHeight() {
+      this.$nextTick(() => {
+        const height = Math.ceil(
+          Math.max(
+            this.$el.scrollHeight,
+            this.$el.offsetHeight
+          )
+        )
+
+        window.parent.postMessage(
+          {
+            type: 'education-dashboard-height',
+            height,
+          },
+          window.location.origin
+        )
+      })
+    },
+
     getInitials(value) {
       const name = value || 'Instructor'
       const parts = name.split(/\s+/).filter(Boolean)
@@ -1487,7 +1522,7 @@ export default {
 
 @media (max-width: 1200px) {
   .content {
-    padding: 24px 22px 35px;
+    padding: 8px 12px 20px;
   }
 
   .hero {
@@ -1505,8 +1540,18 @@ export default {
 }
 
 @media (max-width: 900px) {
+  .app-shell {
+    padding-top: 0;
+  }
+
+  .content {
+    padding: 8px 22px 32px;
+  }
+
   .main {
     margin-left: 0;
+    padding-top: 0;
+    padding-bottom: 0;
     width: 100%;
   }
 
@@ -1520,8 +1565,14 @@ export default {
     align-items: flex-start;
   }
 
+  .profile-copy {
+    width: 100%;
+    min-width: 0;
+  }
+
   .profile-metrics {
     width: 100%;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .quick-grid {
@@ -1531,20 +1582,36 @@ export default {
 
 @media (max-width: 650px) {
   .content {
-    padding: 0 14px 28px;
+    padding: 12px 12px 20px;
   }
 
   .hero {
     min-height: auto;
-    padding: 23px 20px;
+    gap: 12px;
+    padding: 18px 16px;
+    border-radius: 16px;
+  }
+
+  .hero-content {
+    width: 100%;
+    min-width: 0;
   }
 
   .hero h2 {
-    font-size: 24px;
+    font-size: 22px;
+    line-height: 1.2;
   }
 
   .hero p {
+    overflow-wrap: anywhere;
     font-size: 11px;
+  }
+
+  .toolbar-panel,
+  .profile-panel,
+  .detail-panel {
+    margin-top: 12px;
+    padding: 14px;
   }
 
   .stats-grid,
@@ -1553,8 +1620,81 @@ export default {
     grid-template-columns: 1fr;
   }
 
+  .stat-card {
+    min-height: 0;
+    padding: 14px;
+  }
+
+  .stat-body {
+    margin-top: 16px;
+  }
+
+  .stat-body strong {
+    font-size: 22px;
+    overflow-wrap: anywhere;
+  }
+
+  .stat-footer {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    line-height: 1.4;
+  }
+
+  .toolbar-fields,
+  .filter-field,
+  .filter-field input {
+    min-width: 0;
+    width: 100%;
+  }
+
   .toolbar-actions {
+    width: 100%;
     justify-content: flex-start;
+  }
+
+  .toolbar-actions button {
+    min-height: 40px;
+  }
+
+  .profile-metrics {
+    gap: 8px;
+  }
+
+  .profile-meta {
+    overflow-wrap: anywhere;
+  }
+
+  .detail-panel {
+    min-height: 0;
+  }
+
+  .list-row {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .list-row > div:not(.student-pill) {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .list-row > div:first-child:not(.student-pill),
+  .student-row > div:last-child {
+    flex: 1;
+  }
+
+  .list-meta {
+    flex: 0 0 auto;
+    max-width: 45%;
+  }
+
+  .student-pill {
+    flex: 0 0 30px;
+  }
+
+  .error-alert {
+    grid-template-columns: 1fr;
+    align-items: start;
   }
 
   .footer {
