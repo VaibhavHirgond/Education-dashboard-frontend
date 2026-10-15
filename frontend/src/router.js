@@ -81,6 +81,16 @@ const routes = [
   },
 
   {
+    path: '/student-notifications',
+    name: 'StudentNotifications',
+    component: () => import('@/pages/StudentNotifications.vue'),
+    meta: {
+      requiresAuth: true,
+      allowed: ['student'],
+    },
+  },
+
+  {
     path: '/attendance',
     name: 'Attendance',
     component: () => import('@/pages/Attendance.vue'),

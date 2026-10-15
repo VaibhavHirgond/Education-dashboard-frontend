@@ -2842,6 +2842,8 @@ td{
 
     margin-left: 0;
 
+    padding-top: 0;
+
 
 
   }
@@ -2856,7 +2858,7 @@ td{
 
 
 
-    padding: 24px 18px 30px;
+    padding: 12px 18px 30px;
 
 
 

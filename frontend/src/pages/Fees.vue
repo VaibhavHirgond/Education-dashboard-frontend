@@ -2119,8 +2119,8 @@ export default {
   background:
     linear-gradient(
       90deg,
-      #453D89,
-      #5A4FA8
+      #C8499A,
+      #453D89
     );
 }
 
@@ -2301,13 +2301,7 @@ export default {
 
   border-radius: 16px;
 
-  background:
-    linear-gradient(
-      120deg,
-      #141033 0%,
-      #241c56 55%,
-      #3a2a6e 100%
-    );
+  background: linear-gradient(105deg, #453D89, #C8499A);
 
   box-shadow: 0 12px 30px rgba(69, 61, 137, 0.16);
 }
@@ -2334,18 +2328,18 @@ export default {
 
   border-radius: 11px;
 
-  color: #D96BB0;
+  color: #ffffff;
 
   font-size: 16px;
   font-weight: 800;
 
-  background: rgba(200, 73, 154, 0.14);
+  background: rgba(255, 255, 255, 0.16);
 
-  border: 1px solid rgba(217, 107, 176, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .fee-account-label {
-  color: #D96BB0;
+  color: rgba(255, 255, 255, 0.86);
 
   font-size: 12px;
   font-weight: 800;
@@ -2363,7 +2357,7 @@ export default {
 }
 
 .fee-account-left h2 small {
-  color: #b6a9e6;
+  color: #fce7f3;
 
   font-size: 13px;
   font-weight: 600;
@@ -2372,13 +2366,13 @@ export default {
 .fee-account-sep {
   margin: 0 6px;
 
-  color: #6b5fa8;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .fee-account-left p {
   margin: 3px 0 0;
 
-  color: #b3a9d6;
+  color: rgba(255, 255, 255, 0.86);
 
   font-size: 13px;
 }
@@ -2402,7 +2396,7 @@ export default {
 
   margin-bottom: 6px;
 
-  color: #d8d2f0;
+  color: #ffffff;
   font-size: 13px;
   font-weight: 700;
 }
@@ -2431,8 +2425,8 @@ export default {
   font-size: 13px;
   font-weight: 800;
 
-  color: #ffffff;
-  background: linear-gradient(90deg, #C8499A, #7c6fd6);
+  color: #453D89;
+  background: #ffffff;
 
   box-shadow: 0 4px 12px rgba(124, 111, 214, 0.35);
   transition: transform 0.15s ease, filter 0.2s ease;
@@ -2446,8 +2440,8 @@ export default {
 .pay-now-btn:disabled {
   cursor: not-allowed;
 
-  color: #b6a9e6;
-  background: rgba(148, 163, 184, 0.2);
+  color: #453D89;
+  background: #fce7f3;
   box-shadow: none;
 }
 

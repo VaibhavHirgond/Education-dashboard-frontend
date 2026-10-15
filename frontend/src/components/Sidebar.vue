@@ -26,6 +26,12 @@
             >
               <span class="nav-icon">{{ item.icon }}</span>
               <span>{{ item.text }}</span>
+              <span
+                v-if="item.to === '/student-notifications' && unreadNotifications"
+                class="nav-badge"
+              >
+                {{ unreadNotifications > 99 ? '99+' : unreadNotifications }}
+              </span>
             </router-link>
           </template>
         </nav>
@@ -112,6 +118,12 @@
             >
               <span class="nav-icon">{{ item.icon }}</span>
               <span>{{ item.text }}</span>
+              <span
+                v-if="item.to === '/student-notifications' && unreadNotifications"
+                class="nav-badge"
+              >
+                {{ unreadNotifications > 99 ? '99+' : unreadNotifications }}
+              </span>
             </router-link>
           </template>
         </nav>
@@ -137,6 +149,7 @@
 <script>
 import { clearContext, getContext, portalMode } from '@/lib/context'
 import { clearCsrfToken } from '@/lib/csrf'
+import { apiGet } from '@/lib/api'
 
 const STAFF_NAV = [
   {
@@ -177,6 +190,7 @@ const STUDENT_NAV = [
       { to: '/grades', icon: '★', text: 'Grades' },
       { to: '/fees', icon: '₹', text: 'Fees' },
       { to: '/attendance', icon: '✓', text: 'Attendance' },
+      { to: '/student-notifications', icon: '◉', text: 'Notifications' },
     ],
   },
 ]
@@ -200,6 +214,7 @@ export default {
     return {
       mobileMenuOpen: false,
       loggingOut: false,
+      unreadNotifications: 0,
       // Unknown until get_context() answers: an empty mode renders no
       // navigation instead of guessing "staff" and exposing links the
       // server would reject for learners and instructors.
@@ -229,6 +244,10 @@ export default {
     try {
       const ctx = await getContext()
       this.mode = portalMode(ctx) || ''
+      if (this.mode === 'student') {
+        await this.loadUnreadNotifications()
+        window.addEventListener('student-notifications-updated', this.loadUnreadNotifications)
+      }
     } catch (error) {
       console.warn('Sidebar context error:', error)
       this.mode = ''
@@ -236,6 +255,18 @@ export default {
   },
 
   methods: {
+    async loadUnreadNotifications() {
+      try {
+        const result = await apiGet(
+          '/api/method/backend_custom_app.api.student_notifications.get_student_notifications',
+          { limit: 1 }
+        )
+        this.unreadNotifications = Number(result?.unread_count) || 0
+      } catch (error) {
+        this.unreadNotifications = 0
+      }
+    },
+
     openMobileMenu() {
       this.mobileMenuOpen = true
       document.body.classList.add('sidebar-mobile-open')
@@ -291,6 +322,7 @@ export default {
 
   beforeUnmount() {
     document.body.classList.remove('sidebar-mobile-open')
+    window.removeEventListener('student-notifications-updated', this.loadUnreadNotifications)
   },
 }
 </script>
@@ -404,6 +436,19 @@ export default {
   font-weight: 500;
   white-space: nowrap;
   transition: color 0.2s ease, background 0.2s ease;
+}
+
+.nav-badge {
+  min-width: 20px;
+  margin-left: auto;
+  padding: 2px 6px;
+  border-radius: 999px;
+  color: #453d89;
+  background: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.3;
+  text-align: center;
 }
 
 .navigation-item:hover {

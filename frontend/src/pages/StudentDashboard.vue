@@ -4589,7 +4589,7 @@ padding: 24px 32px;
 .student-hero {
   position: relative;
 
-  margin-top: 14px;
+  margin-top: 0;
 
   padding: 14px 20px;
 
@@ -4601,12 +4601,9 @@ padding: 24px 32px;
 
   border-radius: 18px;
 
-  background:
-    linear-gradient(
-      135deg,
-      #ffffff 0%,
-      #f8fafc 100%
-    );
+  color: #ffffff;
+
+  background: linear-gradient(105deg, #453D89, #C8499A);
 
   box-shadow:
     0 8px 24px
@@ -4622,7 +4619,7 @@ padding: 24px 32px;
 .student-hero-text h2 {
   margin: 0;
 
-  color: #1E1B33;
+  color: #ffffff;
 
   font-size: 20px;
   font-weight: 700;
@@ -5075,6 +5072,29 @@ padding: 24px 32px;
   .student-main-content {
     margin-left: 0;
     width: 100%;
+    padding-top: 0;
+  }
+
+  .student-hero {
+    margin-top: 68px;
+  }
+}
+
+@media (max-width: 650px) {
+  .student-hero {
+    margin-top: 60px;
+    padding: 14px 16px;
+  }
+
+  .student-hero-text {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .student-hero-text h2 {
+    font-size: 16px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
   }
 }
 </style>

@@ -574,7 +574,7 @@ tr:last-child td {
 @media (max-width: 900px) {
   .main-content {
     margin-left: 0;
-    padding: 84px 16px 48px;
+    padding: 12px 16px 48px;
   }
 
   .page-header {

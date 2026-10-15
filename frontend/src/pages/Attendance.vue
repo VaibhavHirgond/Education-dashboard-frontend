@@ -279,7 +279,7 @@
           <div>
             <span class="eyebrow">CALENDAR</span>
             <h2>{{ calendarTitle }}</h2>
-            <p>Your marked days for the selected month.</p>
+            <p>Your attendance, leave and class dates for the selected month.</p>
           </div>
           <div class="calendar-nav">
             <button type="button" @click="shiftMonth(-1)">‹</button>
@@ -292,39 +292,86 @@
         </div>
 
         <div class="calendar-grid">
-          <div
-            v-for="(cell, index) in calendarDays"
-            :key="index"
-            class="calendar-cell"
-            :class="[
-              cell.empty ? 'is-empty' : statusCellClass(cell.status),
-              cell.holiday ? 'is-holiday' : '',
-              cell.holiday && cell.holiday.status === 'tentative'
-                ? 'is-holiday-tentative'
-                : ''
-            ]"
-            :title="
-              cell.holiday
-                ? cell.holiday.name +
-                  (cell.holiday.status === 'tentative'
-                    ? ' (date tentative)'
-                    : '')
-                : ''
-            "
-          >
-            <template v-if="!cell.empty">
+          <template v-for="(cell, index) in calendarDays" :key="index">
+            <div v-if="cell.empty" class="calendar-cell is-empty" aria-hidden="true"></div>
+            <button
+              v-else
+              type="button"
+              :class="calendarCellClasses(cell)"
+              :aria-label="calendarCellLabel(cell)"
+              :aria-pressed="selectedCalendarDate === cell.date"
+              @click="selectCalendarDate(cell.date, $event)"
+            >
               <strong>{{ cell.day }}</strong>
-              <span v-if="cell.status" class="status-text">
-                {{ cell.status }}
+              <span class="calendar-indicators" aria-hidden="true">
+                <i
+                  v-for="type in calendarEventTypes(cell)"
+                  :key="type"
+                  class="calendar-event-indicator"
+                  :class="`event-${type}`"
+                ></i>
+                <span
+                  v-for="type in calendarEventTypes(cell)"
+                  :key="`label-${type}`"
+                  class="calendar-event-label"
+                  :class="`event-${type}`"
+                >
+                  {{ calendarEventLabel(type) }}
+                </span>
               </span>
-              <span
-                v-if="cell.holiday"
-                class="holiday-name"
+            </button>
+          </template>
+        </div>
+
+        <div
+          v-if="selectedCalendarDate"
+          class="calendar-modal-backdrop"
+          @click.self="closeCalendarDetails"
+        >
+          <section
+            id="calendar-details"
+            class="calendar-details calendar-details-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="calendar-details-title"
+            tabindex="-1"
+            @click.stop
+          >
+            <div class="calendar-details-header">
+              <div>
+                <span class="eyebrow">DAY DETAILS</span>
+                <h3 id="calendar-details-title">
+                  {{ calendarDateLabel(selectedCalendarDate) }}
+                </h3>
+              </div>
+              <button
+                type="button"
+                class="calendar-details-close"
+                aria-label="Close day details"
+                @click="closeCalendarDetails"
               >
-                {{ cell.holiday.name }}
-              </span>
-            </template>
-          </div>
+                ×
+              </button>
+            </div>
+            <div class="calendar-event-list">
+              <article
+                v-for="event in selectedCalendarEvents"
+                :key="event.key"
+                class="calendar-event-detail"
+              >
+                <span class="calendar-event-type" :class="`event-${event.kind}`">
+                  {{ event.type }}
+                </span>
+                <p>{{ event.description }}</p>
+                <dl v-if="event.details.length">
+                  <div v-for="detail in event.details" :key="detail.label">
+                    <dt>{{ detail.label }}</dt>
+                    <dd>{{ detail.value }}</dd>
+                  </div>
+                </dl>
+              </article>
+            </div>
+          </section>
         </div>
 
         <div class="calendar-legend">
@@ -333,6 +380,7 @@
           <span><i class="dot leave"></i> Leave</span>
           <span><i class="dot none"></i> Not marked</span>
           <span><i class="dot holiday"></i> Holiday</span>
+          <span><i class="dot class-session"></i> Class</span>
           <span class="legend-tentative">
             <i class="dot holiday-tentative"></i> Holiday (tentative)
           </span>
@@ -958,7 +1006,9 @@ import Sidebar from '@/components/Sidebar.vue'
 import {
   ref,
   computed,
+  nextTick,
   onMounted,
+  onBeforeUnmount,
   watch
 } from 'vue'
 import { getContext, isInstructorUser, isStudentUser } from '@/lib/context'
@@ -1638,18 +1688,23 @@ const calendarTitle = computed(() =>
   })
 )
 
+const selectedCalendarDate = ref('')
+const calendarTrigger = ref(null)
+
 function shiftMonth(delta) {
   calendarMonth.value = new Date(
     calendarMonth.value.getFullYear(),
     calendarMonth.value.getMonth() + delta,
     1
   )
+  selectedCalendarDate.value = ''
 }
 
 // =========================================================
 // HOLIDAYS (display-only calendar overlay)
 // =========================================================
 const holidays = ref([])
+const calendarSchedules = ref([])
 const holidayYear = ref(null)
 const holidaySource = ref('')
 const holidayNote = ref('')
@@ -1676,6 +1731,36 @@ async function loadHolidays(year) {
   }
 }
 
+async function loadCalendarSchedules() {
+  if (!isStudent.value) {
+    calendarSchedules.value = []
+    return
+  }
+
+  const year = calendarMonth.value.getFullYear()
+  const month = calendarMonth.value.getMonth()
+  const fromDate = `${year}-${pad(month + 1)}-01`
+  const toDate = `${year}-${pad(month + 1)}-${pad(new Date(year, month + 1, 0).getDate())}`
+  const query = new URLSearchParams({
+    payload: JSON.stringify({ from_date: fromDate, to_date: toDate })
+  })
+
+  try {
+    const response = await fetch(
+      `/api/method/backend_custom_app.api.education.get_course_schedules?${query}`,
+      { credentials: 'include', headers: { Accept: 'application/json' } }
+    )
+    const data = await response.json().catch(() => ({}))
+
+    if (!response.ok) return
+    calendarSchedules.value = Array.isArray(data.message?.schedules)
+      ? data.message.schedules
+      : []
+  } catch (err) {
+    console.warn('Calendar schedule API error:', err)
+  }
+}
+
 watch(
   calendarMonth,
   value => {
@@ -1684,6 +1769,8 @@ watch(
     if (holidayYear.value !== year) {
       loadHolidays(year)
     }
+
+    loadCalendarSchedules()
   },
   { immediate: false }
 )
@@ -1712,16 +1799,25 @@ const calendarDays = computed(() => {
   const totalDays = new Date(year, month + 1, 0).getDate()
 
   const statusByDate = {}
+  const statusesByDate = {}
 
   for (const record of attendance.value.records || []) {
     if (!record.date) continue
 
     const key = String(record.date).slice(0, 10)
-    const score = { Present: 3, Leave: 2, Absent: 1 }[record.status] || 0
+    const status = String(record.status || '').trim()
+    const statuses = statusesByDate[key] || []
+
+    if (status && !statuses.includes(status)) {
+      statuses.push(status)
+      statusesByDate[key] = statuses
+    }
+
+    const score = { Present: 3, Leave: 2, Absent: 1 }[status] || 0
     const current = { Present: 3, Leave: 2, Absent: 1 }[statusByDate[key]] || 0
 
     if (score > current) {
-      statusByDate[key] = record.status
+      statusByDate[key] = status
     }
   }
 
@@ -1739,6 +1835,16 @@ const calendarDays = computed(() => {
       day,
       date,
       status: statusByDate[date] || '',
+      statuses: statusesByDate[date] || [],
+      schedules: calendarSchedules.value.filter(
+        schedule => String(schedule.date || '').slice(0, 10) === date
+      ),
+      leaveApplications: leaveApplications.value.filter(row => {
+        const fromDate = String(row.from_date || '').slice(0, 10)
+        const toDate = String(row.to_date || row.from_date || '').slice(0, 10)
+
+        return fromDate && toDate && fromDate <= date && date <= toDate
+      }),
       holiday: holidayByDate.value[date] || null
     })
   }
@@ -1749,6 +1855,256 @@ const calendarDays = computed(() => {
 
   return cells
 })
+
+function calendarEventTypes(cell) {
+  const types = new Set()
+
+  for (const status of cell.statuses || []) {
+    const normalized = String(status).toLowerCase()
+
+    if (['present', 'absent', 'leave'].includes(normalized)) {
+      types.add(normalized)
+    }
+  }
+
+  if (cell.leaveApplications?.length) {
+    types.add('leave')
+  }
+
+  if (cell.schedules?.length) {
+    types.add('class')
+  }
+
+  if (cell.holiday) {
+    types.add(
+      String(cell.holiday.status || '').toLowerCase() === 'tentative'
+        ? 'tentative-holiday'
+        : 'holiday'
+    )
+  }
+
+  return [...types]
+}
+
+function calendarCellClasses(cell) {
+  const statuses = cell.statuses || []
+  const classes = [
+    'calendar-cell',
+    ...(statuses.length ? statuses.map(statusCellClass) : ['is-none'])
+  ]
+
+  if (cell.leaveApplications?.length && !statuses.includes('Leave')) {
+    classes.push('is-leave')
+  }
+
+  if (cell.holiday) {
+    classes.push('is-holiday')
+
+    if (String(cell.holiday.status || '').toLowerCase() === 'tentative') {
+      classes.push('is-holiday-tentative')
+    }
+  }
+
+  if (selectedCalendarDate.value === cell.date) {
+    classes.push('is-selected')
+  }
+
+  return classes
+}
+
+function calendarEventLabel(type) {
+  const labels = {
+    present: 'Present',
+    absent: 'Absent',
+    leave: 'Leave',
+    class: 'Class',
+    holiday: 'Holiday',
+    'tentative-holiday': 'Tentative'
+  }
+
+  return labels[type] || type
+}
+
+function calendarCellLabel(cell) {
+  const labels = calendarEventTypes(cell).map(calendarEventLabel)
+  const holidayName = cell.holiday?.name
+  const events = labels.length ? labels.join(', ') : 'Not marked'
+
+  return `${formatDate(cell.date)}: ${events}${holidayName ? `. ${holidayName}` : ''}. Show day details.`
+}
+
+function selectCalendarDate(date, event) {
+  calendarTrigger.value = event?.currentTarget || null
+  selectedCalendarDate.value = date
+  nextTick(() => {
+    document.querySelector('.calendar-details-dialog .calendar-details-close')?.focus()
+  })
+}
+
+function closeCalendarDetails() {
+  selectedCalendarDate.value = ''
+  nextTick(() => calendarTrigger.value?.focus())
+}
+
+function handleCalendarKeydown(event) {
+  if (!selectedCalendarDate.value) return
+
+  if (event.key === 'Escape') {
+    closeCalendarDetails()
+    return
+  }
+
+  if (event.key === 'Tab') {
+    const dialog = document.querySelector('.calendar-details-dialog')
+    const focusable = dialog?.querySelectorAll(
+      'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )
+    if (!focusable?.length) return
+
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
+}
+
+function calendarDateLabel(date) {
+  const value = new Date(`${date}T00:00:00`)
+
+  return value.toLocaleDateString('en-IN', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  })
+}
+
+function calendarEventsForDate(date) {
+  const events = []
+  const records = (attendance.value.records || []).filter(
+    record => String(record.date || '').slice(0, 10) === date
+  )
+
+  records.forEach((record, index) => {
+    const status = String(record.status || 'Attendance').trim()
+    const course = record.course || ''
+    const studentGroup = record.studentGroup || record.student_group || ''
+    const details = [
+      { label: 'Course', value: course },
+      { label: 'Student group', value: studentGroup },
+      { label: 'Student', value: record.studentName || record.student_name || '' },
+      { label: 'Record', value: record.id || record.name || '' }
+    ].filter(detail => detail.value)
+
+    events.push({
+      key: `attendance-${record.id || record.name || index}`,
+      kind: status.toLowerCase(),
+      type: status,
+      description:
+        record.description ||
+        record.reason ||
+        record.remarks ||
+        `${status} attendance${course ? ` for ${course}` : ''}.`,
+      details
+    })
+  })
+
+  const schedules = calendarSchedules.value.filter(
+    schedule => String(schedule.date || '').slice(0, 10) === date
+  )
+
+  schedules.forEach((schedule, index) => {
+    const time = [schedule.fromTime, schedule.toTime].filter(Boolean).join(' - ')
+    const details = [
+      { label: 'Course', value: schedule.course || '' },
+      { label: 'Student group', value: schedule.studentGroup || '' },
+      { label: 'Instructor', value: schedule.instructor || '' },
+      { label: 'Time', value: time },
+      { label: 'Room', value: schedule.room || '' },
+      { label: 'Status', value: schedule.status || '' }
+    ].filter(detail => detail.value)
+
+    events.push({
+      key: `schedule-${schedule.id || index}`,
+      kind: 'class',
+      type: 'Class session',
+      description: `${schedule.course || 'Class'}${time ? ` is scheduled from ${time}` : ' is scheduled'}${schedule.room ? ` in ${schedule.room}` : ''}.`,
+      details
+    })
+  })
+
+  const leaveRows = leaveApplications.value.filter(row => {
+    const fromDate = String(row.from_date || '').slice(0, 10)
+    const toDate = String(row.to_date || row.from_date || '').slice(0, 10)
+
+    return fromDate && toDate && fromDate <= date && date <= toDate
+  })
+
+  leaveRows.forEach((row, index) => {
+    const fromDate = String(row.from_date || '').slice(0, 10)
+    const toDate = String(row.to_date || row.from_date || '').slice(0, 10)
+    const details = [
+      { label: 'Status', value: row.status || '' },
+      {
+        label: 'Dates',
+        value: fromDate
+          ? `${formatDate(fromDate)}${toDate && toDate !== fromDate ? ` – ${formatDate(toDate)}` : ''}`
+          : ''
+      },
+      { label: 'Student group', value: row.student_group || '' },
+      { label: 'Student', value: row.student_name || row.student || '' },
+      { label: 'Application', value: row.name || '' }
+    ].filter(detail => detail.value)
+
+    events.push({
+      key: `leave-${row.name || index}`,
+      kind: 'leave',
+      type: 'Leave application',
+      description: row.reason || `Leave application${row.status ? ` (${row.status})` : ''}.`,
+      details
+    })
+  })
+
+  const holiday = holidayByDate.value[date]
+
+  if (holiday) {
+    const tentative = String(holiday.status || '').toLowerCase() === 'tentative'
+
+    events.push({
+      key: `holiday-${date}`,
+      kind: tentative ? 'tentative-holiday' : 'holiday',
+      type: tentative ? 'Tentative holiday' : 'Holiday',
+      description: holiday.description || holiday.name || 'Holiday',
+      details: [
+        { label: 'Status', value: holiday.status || 'Confirmed' },
+        { label: 'Name', value: holiday.name || '' }
+      ].filter(detail => detail.value)
+    })
+  }
+
+  if (!events.length) {
+    events.push({
+      key: `not-marked-${date}`,
+      kind: 'none',
+      type: 'No events',
+      description: 'No events for this date.',
+      details: []
+    })
+  }
+
+  return events
+}
+
+const selectedCalendarEvents = computed(() =>
+  selectedCalendarDate.value
+    ? calendarEventsForDate(selectedCalendarDate.value)
+    : []
+)
 
 function statusCellClass(status) {
   if (status === 'Present') return 'is-present'
@@ -1837,9 +2193,14 @@ watch(
 // INITIAL LOAD
 // =========================================================
 onMounted(() => {
-  loadContext()
+  document.addEventListener('keydown', handleCalendarKeydown)
+  loadContext().then(loadCalendarSchedules)
   reloadAll()
   loadHolidays(calendarMonth.value.getFullYear())
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', handleCalendarKeydown)
 })
 </script>
 
@@ -3923,7 +4284,7 @@ onMounted(() => {
 
 
 
-  overflow: hidden;
+  overflow: visible;
 
 
 
@@ -6063,25 +6424,6 @@ onMounted(() => {
 
 
 
-.history-panel {
-
-
-
-
-
-
-
-  overflow: hidden;
-
-
-
-
-
-
-
-}
-
-
 
 
 
@@ -6193,16 +6535,15 @@ onMounted(() => {
 
 }
 
-/* Internal scroll for My Attendance History (heading stays outside). */
+/* Internal scroll for My Attendance History (heading stays outside).
+   Height is viewport-aware so every record stays reachable via the
+   list's own scrollbar on desktop and touch scrolling on mobile. */
 .record-scroll {
-  max-height: 320px;
-
+  max-height: min(65vh, 560px);
   overflow-y: auto;
-
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: #c7cbe0 transparent;
-
-  overscroll-behavior: auto;
 }
 
 .record-scroll::-webkit-scrollbar {
@@ -11243,10 +11584,6 @@ tbody tr:hover {
 
 
 
-  .record-scroll {
-    max-height: 340px;
-  }
-
   .mobile-records {
 
 
@@ -12742,54 +13079,114 @@ tbody tr:hover {
 
 .calendar-weekdays {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
   margin-bottom: 8px;
+  min-width: 0;
 }
 
 .calendar-weekdays span {
+  min-width: 0;
   text-align: center;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
   color: #6b6b80;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.03em;
 }
 
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-auto-rows: minmax(64px, auto);
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
 }
 
 .calendar-cell {
-  min-height: 66px;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 64px;
   border: 1px solid #e8e6f0;
   border-radius: 10px;
-  padding: 8px 6px;
+  padding: 6px 5px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 3px;
+  align-items: stretch;
+  gap: 5px;
   background: #fafafd;
+  color: #1a1a2e;
+  font: inherit;
+  text-align: left;
+}
+
+button.calendar-cell {
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+button.calendar-cell:hover {
+  border-color: #a89de0;
+  box-shadow: 0 2px 8px rgba(69, 61, 137, 0.12);
+}
+
+button.calendar-cell:focus-visible {
+  outline: 2px solid #453D89;
+  outline-offset: 1px;
+}
+
+.calendar-cell.is-selected {
+  border-color: #453D89;
+  box-shadow: 0 0 0 2px rgba(69, 61, 137, 0.18);
 }
 
 .calendar-cell.is-empty {
   border-color: transparent;
   background: transparent;
+  pointer-events: none;
 }
 
 .calendar-cell strong {
+  align-self: flex-start;
   font-size: 13px;
+  line-height: 1.1;
   color: #1a1a2e;
 }
 
-.calendar-cell span {
-  font-size: 13px;
+.calendar-indicators {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px;
+  min-width: 0;
+  margin-top: auto;
+  padding: 0;
+  border-radius: 0;
+  color: inherit;
+  background: transparent;
+}
+
+.calendar-event-indicator {
+  display: inline-block;
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.calendar-event-label {
+  display: inline-flex;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 4px;
+  border-radius: 5px;
+  font-size: 8px;
   font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 6px;
-  color: #fff;
 }
 
 .calendar-cell.is-present {
@@ -12797,17 +13194,9 @@ tbody tr:hover {
   border-color: #bbf7d0;
 }
 
-.calendar-cell.is-present span {
-  background: #16a34a;
-}
-
 .calendar-cell.is-absent {
   background: #fef2f2;
   border-color: #fecaca;
-}
-
-.calendar-cell.is-absent span {
-  background: #dc2626;
 }
 
 .calendar-cell.is-leave {
@@ -12815,38 +13204,59 @@ tbody tr:hover {
   border-color: #fde68a;
 }
 
-.calendar-cell.is-leave span {
+.calendar-event-label.event-present {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.calendar-event-label.event-absent {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.calendar-event-label.event-leave {
+  color: #9a3412;
+  background: #ffedd5;
+}
+
+.calendar-event-label.event-holiday {
+  color: #5b21b6;
+  background: #ede9fe;
+}
+
+.calendar-event-label.event-tentative-holiday {
+  color: #7e22ce;
+  background: #faf5ff;
+}
+
+.calendar-event-indicator.event-present {
+  background: #16a34a;
+}
+
+.calendar-event-indicator.event-absent {
+  background: #dc2626;
+}
+
+.calendar-event-indicator.event-leave {
   background: #d97706;
 }
 
-/* ---- Holiday overlay (coexists with attendance status) ---- */
-.calendar-cell .holiday-name {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.2;
-  text-align: center;
-
-  padding: 0;
-  border-radius: 0;
-
-  color: #7c3aed;
-  background: transparent;
+.calendar-event-indicator.event-holiday {
+  background: #7c3aed;
 }
 
-.calendar-cell.is-holiday-tentative .holiday-name {
-  color: #a855f7;
-  border-bottom: 1px dashed rgba(168, 85, 247, 0.6);
+.calendar-event-indicator.event-tentative-holiday {
+  background: #c084fc;
 }
 
-/* Unmarked holiday cells get a soft tint so they stand out. */
-.calendar-cell.is-none.is-holiday {
+.calendar-cell.is-holiday {
   background: #f5f3ff;
   border-color: #ddd6fe;
+}
+
+.calendar-cell.is-holiday-tentative {
+  background: #faf5ff;
+  border-color: #e9d5ff;
 }
 
 .calendar-holiday-note {
@@ -12854,15 +13264,17 @@ tbody tr:hover {
   font-size: 13px;
   color: #8b8ba7;
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .calendar-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 8px 14px;
   margin-top: 14px;
   font-size: 13px;
   color: #6b6b80;
+  min-width: 0;
 }
 
 .calendar-legend span {
@@ -12906,6 +13318,129 @@ tbody tr:hover {
   opacity: 0.85;
 }
 
+.calendar-details {
+  min-width: 0;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #e5e1f3;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.calendar-details-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.calendar-details-header h3 {
+  margin: 0;
+  color: #1a1a2e;
+  font-size: 15px;
+}
+
+.calendar-details-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #e8e6f0;
+  border-radius: 9px;
+  color: #453D89;
+  background: #f8f7fc;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.calendar-event-list {
+  display: grid;
+  gap: 10px;
+}
+
+.calendar-event-detail {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #eeedf4;
+  border-radius: 10px;
+  background: #fafafd;
+}
+
+.calendar-event-type {
+  display: inline-flex;
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.calendar-event-type.event-present {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.calendar-event-type.event-absent {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.calendar-event-type.event-leave {
+  color: #9a3412;
+  background: #ffedd5;
+}
+
+.calendar-event-type.event-holiday {
+  color: #5b21b6;
+  background: #ede9fe;
+}
+
+.calendar-event-type.event-tentative-holiday {
+  color: #7e22ce;
+  background: #faf5ff;
+}
+
+.calendar-event-type.event-none {
+  color: #475569;
+  background: #f1f5f9;
+}
+
+.calendar-event-detail p {
+  margin: 8px 0 0;
+  color: #44445c;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.calendar-event-detail dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  margin: 10px 0 0;
+}
+
+.calendar-event-detail dl > div {
+  min-width: 0;
+}
+
+.calendar-event-detail dt {
+  color: #73738a;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.calendar-event-detail dd {
+  margin: 2px 0 0;
+  color: #29283f;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
 /* =====================================================
    LEAVE PANEL
 ===================================================== */
@@ -12917,20 +13452,19 @@ tbody tr:hover {
   margin-bottom: 18px;
 }
 
+.leave-panel {
+  margin-top: 20px;
+}
+
 .leave-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
-
-  /* Internal scroll: header + Apply for Leave stay visible above. */
-  max-height: 340px;
-
+  max-height: min(55vh, 480px);
   overflow-y: auto;
-
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: #c7cbe0 transparent;
-
-  overscroll-behavior: auto;
 }
 
 .leave-list::-webkit-scrollbar {
@@ -13309,26 +13843,181 @@ tbody tr:hover {
     grid-template-columns: 1fr;
   }
 
-  .leave-list {
-    max-height: 260px;
-  }
-
   .leave-row {
     flex-direction: column;
+    gap: 10px;
+    padding: 12px;
   }
 
   .leave-side {
     align-items: flex-start;
   }
 
-  .calendar-cell {
-    min-height: 54px;
-    padding: 6px 3px;
+  .leave-panel {
+    margin-top: 20px;
   }
 
-  .calendar-cell span {
-    font-size: 13px;
-    padding: 1px 4px;
+  .leave-panel .panel-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .leave-panel .panel-header > .refresh-button {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .mobile-records,
+  .attendance-card-row,
+  .mobile-meta > div {
+    min-width: 0;
+  }
+
+  .mobile-meta strong,
+  .leave-main strong,
+  .leave-main span,
+  .leave-main p {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .header-actions .refresh-button {
+    flex: 1 1 145px;
+    width: auto;
+    min-width: 0;
+    min-height: 44px;
+    padding: 10px 12px;
+    white-space: normal;
+  }
+
+  .calendar-grid,
+  .calendar-weekdays {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 3px;
+  }
+
+  .calendar-grid {
+    grid-auto-rows: minmax(54px, auto);
+  }
+
+  .calendar-weekdays span {
+    font-size: 10px;
+  }
+
+  .calendar-cell {
+    min-height: 54px;
+    padding: 5px 3px;
+    border-radius: 8px;
+  }
+
+  .calendar-cell strong {
+    font-size: 12px;
+  }
+
+  .calendar-event-label {
+    display: none;
+  }
+
+  .calendar-event-indicator {
+    flex-basis: 7px;
+    width: 7px;
+    height: 7px;
+  }
+
+  .calendar-panel .panel-header {
+    align-items: center;
+    gap: 10px;
+  }
+
+  .calendar-legend {
+    gap: 8px 12px;
+    font-size: 12px;
+  }
+
+  .calendar-details {
+    padding: 12px;
+  }
+
+  .calendar-event-detail dl {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    padding-top: 0;
+  }
+
+  .main-content {
+    padding-top: 76px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content {
+    padding-top: 72px;
+  }
+}
+
+.calendar-panel {
+  margin-bottom: 24px;
+}
+
+.overview-panel {
+  margin-top: 24px;
+}
+
+.calendar-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 21001;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(24, 24, 39, 0.48);
+}
+
+.calendar-details-dialog {
+  width: min(620px, 100%);
+  max-height: min(80vh, 720px);
+  margin: 0;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(24, 24, 39, 0.24);
+}
+
+.calendar-event-label.event-class {
+  color: #115e59;
+  background: #ccfbf1;
+}
+
+.calendar-event-indicator.event-class,
+.calendar-legend .dot.class-session {
+  background: #0f766e;
+}
+
+.calendar-event-type.event-class {
+  color: #115e59;
+  background: #ccfbf1;
+}
+
+@media (max-width: 640px) {
+  .calendar-modal-backdrop {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .calendar-details-dialog {
+    max-height: min(82vh, 720px);
   }
 }
 </style>
