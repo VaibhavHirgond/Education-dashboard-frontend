@@ -59,16 +59,18 @@ export function portalMode(ctx) {
     return null
   }
 
-  if (ctx.is_staff) {
-    return 'staff'
-  }
-
+  // An instructor who also has Education Manager should see
+  // the Instructor Dashboard, while retaining their Frappe roles.
   if (ctx.is_instructor) {
     return 'instructor'
   }
 
   if (ctx.is_student) {
     return 'student'
+  }
+
+  if (ctx.is_staff) {
+    return 'staff'
   }
 
   return null
