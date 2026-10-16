@@ -2,7 +2,7 @@
   <div class="student-dashboard">
     <Sidebar />
     <div class="student-main-content">
-<section class="student-hero">
+<section class="student-hero" :class="{ 'bell-open': notificationsOpen }">
 
           <div class="student-hero-main">
 
@@ -11,6 +11,148 @@
               <h2>
                 {{ greeting }}, {{ studentDisplayName }}
               </h2>
+
+            </div>
+
+            <div class="bell-wrap" ref="bellWrap">
+
+              <button
+                type="button"
+                class="bell-button"
+                aria-label="Notifications"
+                :aria-expanded="notificationsOpen"
+                @click.stop="toggleNotifications"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M13.7 21a2 2 0 0 1-3.4 0" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+
+                <span
+                  v-if="notificationUnread"
+                  class="bell-badge"
+                >
+                  {{ notificationUnread > 99 ? '99+' : notificationUnread }}
+                </span>
+              </button>
+
+              <div
+                v-if="notificationsOpen"
+                class="bell-panel"
+                role="dialog"
+                aria-label="Notifications"
+                @click.stop
+              >
+
+                <div class="bell-panel-head">
+
+                  <strong>Notifications</strong>
+
+                  <button
+                    type="button"
+                    class="bell-close"
+                    aria-label="Close notifications"
+                    @click="closeNotifications"
+                  >
+                    ×
+                  </button>
+
+                </div>
+
+                <div class="bell-panel-meta">
+
+                  <span v-if="notificationUnread">{{ notificationUnread }} unread</span>
+                  <span v-else>All caught up</span>
+
+                  <button
+                    v-if="notificationUnread"
+                    type="button"
+                    :disabled="markingAllFromBell"
+                    @click="markAllFromBell"
+                  >
+                    {{ markingAllFromBell ? 'Updating…' : 'Mark all read' }}
+                  </button>
+
+                </div>
+
+                <div class="bell-panel-list">
+
+                  <div
+                    v-if="notificationsLoading && !notifications.length"
+                    class="bell-state"
+                    role="status"
+                  >
+                    Loading notifications…
+                  </div>
+
+                  <div
+                    v-else-if="notificationsError"
+                    class="bell-state bell-state-error"
+                    role="alert"
+                  >
+                    <p>{{ notificationsError }}</p>
+                    <button type="button" @click="loadNotifications">Try again</button>
+                  </div>
+
+                  <div
+                    v-else-if="!notifications.length"
+                    class="bell-state"
+                  >
+                    You're all caught up.
+                  </div>
+
+                  <template v-else>
+                    <article
+                      v-for="notification in notifications"
+                      :key="notification.name"
+                      class="bell-item"
+                      :class="{ unread: !notification.read }"
+                    >
+                    <span
+                      class="bell-dot"
+                      :class="{ show: !notification.read }"
+                      aria-hidden="true"
+                    ></span>
+
+                    <div class="bell-item-body">
+
+                      <p class="bell-item-title">{{ notification.title }}</p>
+
+                      <p class="bell-item-desc">{{ notification.description }}</p>
+
+                      <div class="bell-item-meta">
+
+                        <time :datetime="notification.creation">
+                          {{ formatNotificationTime(notification.creation) }}
+                        </time>
+
+                        <button
+                          v-if="!notification.read"
+                          type="button"
+                          :disabled="bellBusy === notification.name"
+                          @click="markNotificationReadFromBell(notification)"
+                        >
+                          {{ bellBusy === notification.name ? 'Saving…' : 'Mark read' }}
+                        </button>
+
+                      </div>
+
+                    </div>
+
+                  </article>
+                  </template>
+
+                </div>
+
+                <router-link
+                  to="/student-notifications"
+                  class="bell-view-all"
+                  @click="closeNotifications"
+                >
+                  View all notifications
+                </router-link>
+
+              </div>
 
             </div>
 
@@ -638,6 +780,7 @@
 <script>
 import Sidebar from '@/components/Sidebar.vue'
 import { getContext, isInstructorUser, isStaffUser, isStudentUser } from '@/lib/context'
+import { apiGet, apiPost } from '@/lib/api'
 
 export default {
   name: 'StudentDashboard',
@@ -699,6 +842,20 @@ export default {
       activeProfileTab: 'Personal',
 
       profilePhotoBroken: false,
+
+      notificationsOpen: false,
+
+      notifications: [],
+
+      notificationsLoading: false,
+
+      notificationsError: '',
+
+      notificationUnread: 0,
+
+      bellBusy: '',
+
+      markingAllFromBell: false,
 
     }
   },
@@ -940,6 +1097,16 @@ export default {
 
   mounted() {
   this.loadDashboard()
+  this.loadNotifications()
+  window.addEventListener('student-notifications-updated', this.loadNotifications)
+  this._bellOutsideHandler = (event) => {
+    if (!this.notificationsOpen) return
+    const wrap = this.$refs.bellWrap
+    if (wrap && !wrap.contains(event.target)) {
+      this.closeNotifications()
+    }
+  }
+  document.addEventListener('click', this._bellOutsideHandler)
   this.$nextTick(() => {
     this.reportDashboardHeight()
   })
@@ -958,10 +1125,95 @@ beforeUnmount() {
   }
 
   window.removeEventListener('resize', this.reportDashboardHeight)
+  window.removeEventListener('student-notifications-updated', this.loadNotifications)
+  if (this._bellOutsideHandler) {
+    document.removeEventListener('click', this._bellOutsideHandler)
+  }
 },
 
   methods: {
     
+async loadNotifications() {
+  this.notificationsLoading = true
+  this.notificationsError = ''
+
+  try {
+    const result = await apiGet(
+      '/api/method/backend_custom_app.api.student_notifications.get_student_notifications',
+      { limit: 20 }
+    )
+    this.notifications = Array.isArray(result?.notifications)
+      ? result.notifications
+      : []
+    this.notificationUnread = Number(result?.unread_count) || 0
+  } catch (requestError) {
+    this.notificationsError = requestError.message || 'Please try again.'
+  } finally {
+    this.notificationsLoading = false
+  }
+},
+
+toggleNotifications() {
+  if (this.notificationsOpen) {
+    this.closeNotifications()
+    return
+  }
+
+  this.notificationsOpen = true
+  this.loadNotifications()
+},
+
+closeNotifications() {
+  this.notificationsOpen = false
+},
+
+async markNotificationReadFromBell(notification) {
+  if (this.bellBusy) return
+
+  this.bellBusy = notification.name
+
+  try {
+    await apiPost(
+      '/api/method/backend_custom_app.api.student_notifications.mark_student_notification_read',
+      { notification_name: notification.name }
+    )
+    notification.read = true
+    this.notificationUnread = Math.max(0, this.notificationUnread - 1)
+    window.dispatchEvent(new Event('student-notifications-updated'))
+  } catch (requestError) {
+    this.notificationsError = requestError.message || 'Unable to update this notification.'
+  } finally {
+    this.bellBusy = ''
+  }
+},
+
+async markAllFromBell() {
+  if (this.markingAllFromBell || !this.notificationUnread) return
+
+  this.markingAllFromBell = true
+
+  try {
+    await apiPost(
+      '/api/method/backend_custom_app.api.student_notifications.mark_all_student_notifications_read'
+    )
+    this.notifications.forEach(notification => {
+      notification.read = true
+    })
+    this.notificationUnread = 0
+    window.dispatchEvent(new Event('student-notifications-updated'))
+  } catch (requestError) {
+    this.notificationsError = requestError.message || 'Unable to update notifications.'
+  } finally {
+    this.markingAllFromBell = false
+  }
+},
+
+formatNotificationTime(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
+},
+
 reportDashboardHeight() {
   this.$nextTick(() => {
     const height = Math.ceil(
@@ -4623,6 +4875,335 @@ padding: 24px 32px;
 
   font-size: 20px;
   font-weight: 700;
+}
+
+/* =========================================================
+   HEADER NOTIFICATION BELL + PANEL
+========================================================= */
+
+.student-hero.bell-open {
+  overflow: visible;
+}
+
+.bell-wrap {
+  position: relative;
+
+  flex: 0 0 auto;
+
+  margin-left: auto;
+}
+
+.bell-button {
+  position: relative;
+
+  width: 42px;
+  height: 42px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 12px;
+
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+
+  cursor: pointer;
+
+  transition: background 0.2s ease;
+}
+
+.bell-button:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+
+.bell-button svg {
+  width: 20px;
+  height: 20px;
+
+  fill: none;
+
+  stroke: #ffffff;
+  stroke-width: 1.8;
+}
+
+.bell-badge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+
+  background: #ffffff;
+  color: #C8499A;
+
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.bell-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+
+  z-index: 60;
+
+  width: min(340px, calc(100vw - 24px));
+  max-height: min(430px, 62vh);
+
+  display: flex;
+  flex-direction: column;
+
+  border: 1px solid #e8eaf2;
+  border-radius: 14px;
+
+  background: #ffffff;
+  color: #20213a;
+
+  box-shadow: 0 18px 40px rgba(31, 27, 66, 0.22);
+
+  overflow: hidden;
+}
+
+.bell-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 12px 14px;
+
+  border-bottom: 1px solid #eef0f6;
+}
+
+.bell-panel-head strong {
+  font-size: 13px;
+  color: #23233d;
+}
+
+.bell-close {
+  width: 28px;
+  height: 28px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: 0;
+  border-radius: 8px;
+
+  background: #f1f2f8;
+  color: #5a5f7a;
+
+  font-size: 18px;
+  line-height: 1;
+
+  cursor: pointer;
+}
+
+.bell-close:hover {
+  background: #e7e8f2;
+}
+
+.bell-panel-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 8px 14px;
+
+  border-bottom: 1px solid #eef0f6;
+
+  background: #fafaff;
+
+  font-size: 11px;
+  color: #6b7090;
+}
+
+.bell-panel-meta button {
+  padding: 0;
+
+  border: 0;
+
+  background: transparent;
+  color: #453D89;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.bell-panel-meta button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.bell-panel-list {
+  flex: 1 1 auto;
+
+  min-height: 60px;
+
+  padding: 6px 8px;
+
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.bell-state {
+  padding: 20px 10px;
+
+  text-align: center;
+
+  font-size: 12px;
+  color: #6b7090;
+}
+
+.bell-state-error p {
+  margin: 0 0 8px;
+  color: #b4235a;
+}
+
+.bell-state-error button {
+  padding: 5px 12px;
+
+  border: 1px solid #e4e6f0;
+  border-radius: 8px;
+
+  background: #fff;
+  color: #453D89;
+
+  font-size: 11.5px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.bell-item {
+  display: flex;
+  gap: 9px;
+
+  padding: 9px 8px;
+
+  border-radius: 10px;
+}
+
+.bell-item + .bell-item {
+  margin-top: 2px;
+}
+
+.bell-item.unread {
+  background: #f7f3fb;
+}
+
+.bell-dot {
+  flex: 0 0 auto;
+
+  width: 7px;
+  height: 7px;
+  margin-top: 6px;
+
+  border-radius: 50%;
+
+  background: #d7d9e6;
+}
+
+.bell-dot.show {
+  background: #C8499A;
+  box-shadow: 0 0 0 3px rgba(200, 73, 154, 0.16);
+}
+
+.bell-item-body {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.bell-item-title {
+  margin: 0;
+
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #23233d;
+
+  overflow-wrap: anywhere;
+}
+
+.bell-item-desc {
+  margin: 3px 0 0;
+
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #5d6280;
+
+  overflow-wrap: anywhere;
+}
+
+.bell-item-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+
+  margin-top: 5px;
+
+  font-size: 10.5px;
+  color: #8a8fae;
+}
+
+.bell-item-meta button {
+  flex: 0 0 auto;
+
+  padding: 3px 8px;
+
+  border: 1px solid #e4e6f0;
+  border-radius: 7px;
+
+  background: #ffffff;
+  color: #453D89;
+
+  font-size: 10.5px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.bell-item-meta button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.bell-view-all {
+  display: block;
+
+  padding: 10px 14px;
+
+  border-top: 1px solid #eef0f6;
+
+  background: #fafaff;
+  color: #453D89;
+
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+
+.bell-view-all:hover {
+  background: #f2f2fb;
 }
 
 .student-stats .stat-card {
