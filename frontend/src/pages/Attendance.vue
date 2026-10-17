@@ -6373,17 +6373,17 @@ onBeforeUnmount(() => {
 
 .student-details { min-width: 0; display: flex; flex-direction: column; }
 .student-details h3{ margin: 0; color: #303149; font-size: 12px; font-weight: 800; line-height: 1.35; overflow-wrap: anywhere; }
-.student-details span{ margin-top: 3px; color: #a0a0af; font-size: 9px; overflow-wrap: anywhere; }
+.student-details span{ margin-top: 3px; color: #6b6b80; font-size: 11px; overflow-wrap: anywhere; }
 
 .student-meta { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; min-width: 0; }
 .student-meta > div { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.student-meta span{ color: #a0a0af; font-size: 8px; text-transform: uppercase; letter-spacing: .4px; }
-.student-meta strong{ color: #55566c; font-size: 9px; line-height: 1.35; overflow-wrap: anywhere; }
+.student-meta span{ color: #6b6b80; font-size: 10px; text-transform: uppercase; letter-spacing: .4px; }
+.student-meta strong{ color: #3a3a52; font-size: 11px; line-height: 1.35; overflow-wrap: anywhere; }
 
 .student-attendance { display: grid; grid-template-columns: repeat(4,auto); align-items: center; gap: 8px; }
 .student-stat,.student-rate { min-width: 42px; padding: 7px 8px; border-radius: 8px; text-align: center; }
 .student-stat { display: flex; flex-direction: column; gap: 2px; }
-.student-stat span,.student-rate span{ font-size: 7px; font-weight: 700; text-transform: uppercase; letter-spacing: .25px; }
+.student-stat span,.student-rate span{ font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .25px; }
 .student-stat strong,.student-rate strong{ font-size: 12px; font-weight: 800; }
 .present-stat { background:#eaf8f1; color:#258f5e; }
 .absent-stat { background:#ffeded; color:#d64a4a; }
@@ -7796,7 +7796,7 @@ tbody tr:hover {
 
 
 
-  font-size: 8px;
+  font-size: 10px;
 
 
 
@@ -9996,7 +9996,7 @@ tbody tr:hover {
 
 
 
-  font-size: 8px !important;
+  font-size: 10px !important;
 
 
 
@@ -10977,7 +10977,7 @@ tbody tr:hover {
   }
 
   .summary-note {
-    font-size: 8px;
+    font-size: 10px;
   }  .panel-header {
 
 
@@ -11880,7 +11880,7 @@ tbody tr:hover {
   .record-top span {
     margin-top: 3px;
     color: #a0a0af;
-    font-size: 8px;
+    font-size: 10px;
   }  .mobile-student {
 
 
@@ -12107,7 +12107,7 @@ tbody tr:hover {
 
 .mobile-meta span {
     color: #a0a0af;
-    font-size: 8px;
+    font-size: 10px;
   }
 
   .mobile-meta strong {
@@ -13035,13 +13035,15 @@ tbody tr:hover {
 }
 
 .leave-action {
-  background: #5b5ce2;
+  background: linear-gradient(105deg, #453D89, #C8499A);
   color: #fff;
   border: none;
+  box-shadow: 0 6px 16px rgba(69, 61, 137, 0.25);
 }
 
 .leave-action:hover:not(:disabled) {
-  background: #4a4bd0;
+  background: linear-gradient(105deg, #3d3578, #b83d8b);
+  filter: brightness(1.02);
 }
 
 /* =====================================================
@@ -13066,7 +13068,7 @@ tbody tr:hover {
   border: 1px solid #e8e6f0;
   border-radius: 9px;
   background: #f8f7fc;
-  color: #5b5ce2;
+  color: #453D89;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
@@ -13074,7 +13076,7 @@ tbody tr:hover {
 }
 
 .calendar-nav button:hover {
-  background: #edeafd;
+  background: #ede9f7;
 }
 
 .calendar-weekdays {
@@ -13183,9 +13185,9 @@ button.calendar-cell:focus-visible {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 2px 4px;
+  padding: 2px 5px;
   border-radius: 5px;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 600;
 }
 
@@ -13843,6 +13845,63 @@ button.calendar-cell:focus-visible {
     grid-template-columns: 1fr;
   }
 
+  /* Apply-for-leave modal: fit the visible viewport, keep every field
+     and the action buttons reachable while the mobile keyboard is open. */
+  .modal-backdrop {
+    align-items: flex-end;
+    padding: 12px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .modal-card {
+    width: 100%;
+    max-width: 100%;
+    max-height: min(90vh, 100%);
+    max-height: min(90dvh, 100%);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  .modal-header {
+    padding: 16px 16px 12px;
+  }
+
+  .modal-body {
+    padding: 14px 16px;
+    min-width: 0;
+  }
+
+  .modal-grid,
+  .modal-field {
+    min-width: 0;
+  }
+
+  .modal-field input,
+  .modal-field select,
+  .modal-field textarea {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    font-size: 16px;
+  }
+
+  .modal-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    flex-wrap: wrap;
+    background: #fff;
+    padding: 12px 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .modal-footer .refresh-button {
+    flex: 1 1 130px;
+    min-height: 44px;
+  }
+
   .leave-row {
     flex-direction: column;
     gap: 10px;
@@ -13971,6 +14030,9 @@ button.calendar-cell:focus-visible {
 
 .calendar-panel {
   margin-bottom: 24px;
+  padding: 18px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .overview-panel {

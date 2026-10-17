@@ -349,7 +349,7 @@
                   </span>
                 </div>
 
-                <div class="field field-span">
+                <div class="field">
                   <span class="field-label">Student Group{{ profileGroups.length === 1 ? '' : 's' }}</span>
                   <span class="field-value">
                     <template v-if="profileGroups.length">
@@ -385,7 +385,13 @@
           class="stats-grid student-stats"
         >
 
-          <article class="stat-card">
+          <article
+            class="stat-card is-clickable"
+            role="button"
+            tabindex="0"
+            @click="goTo('/attendance')"
+            @keyup.enter="goTo('/attendance')"
+          >
 
             <div class="stat-card-top">
               <div class="stat-icon blue">
@@ -415,7 +421,13 @@
 
           </article>
 
-          <article class="stat-card green-card">
+          <article
+            class="stat-card green-card is-clickable"
+            role="button"
+            tabindex="0"
+            @click="goTo('/fees')"
+            @keyup.enter="goTo('/fees')"
+          >
 
             <div class="stat-card-top">
               <div class="stat-icon green">
@@ -444,7 +456,13 @@
 
           </article>
 
-          <article class="stat-card orange-card">
+          <article
+            class="stat-card orange-card is-clickable"
+            role="button"
+            tabindex="0"
+            @click="goTo('/timetable')"
+            @keyup.enter="goTo('/timetable')"
+          >
 
             <div class="stat-card-top">
               <div class="stat-icon orange">
@@ -458,21 +476,27 @@
 
             <div class="stat-body">
               <span>
-                Upcoming Classes
+                Today's Classes
               </span>
 
               <strong>
-                {{ studentUpcoming.length }}
+                {{ studentToday.length }}
               </strong>
             </div>
 
             <div class="stat-footer">
-              Next: {{ nextClassLabel }}
+              {{ studentToday.length ? 'Next: ' + nextClassLabel : 'No classes today' }}
             </div>
 
           </article>
 
-          <article class="stat-card purple-card">
+          <article
+            class="stat-card purple-card is-clickable"
+            role="button"
+            tabindex="0"
+            @click="goTo('/attendance')"
+            @keyup.enter="goTo('/attendance')"
+          >
 
             <div class="stat-card-top">
               <div class="stat-icon purple">
@@ -516,11 +540,11 @@
 
                 <div>
                   <h3>
-                    Upcoming Classes
+                    Today's Classes
                   </h3>
 
                   <p>
-                    Sessions for your student groups
+                    Sessions scheduled for today
                   </p>
                 </div>
 
@@ -537,11 +561,11 @@
 
             <div class="panel-body scroll-body">
               <ul
-                v-if="studentUpcoming.length"
+                v-if="studentToday.length"
                 class="student-list"
               >
                 <li
-                  v-for="session in studentUpcoming"
+                  v-for="session in studentToday"
                   :key="session.id"
                 >
                   <div>
@@ -550,10 +574,8 @@
                     </strong>
 
                     <span>
-                      {{ formatDate(session.date) }}
                       {{ session.fromTime }}
                       – {{ session.toTime }}
-                      <em v-if="session.isToday">(today)</em>
                     </span>
                   </div>
 
@@ -564,7 +586,7 @@
               </ul>
 
               <div v-else class="empty">
-                No upcoming classes scheduled.
+                No classes scheduled today.
               </div>
             </div>
 
@@ -771,6 +793,69 @@
 
           </section>
 
+          <section class="panel holiday-panel">
+
+            <div class="panel-header">
+
+              <div class="panel-title">
+
+                <div class="panel-icon pink">
+                  ✦
+                </div>
+
+                <div>
+                  <h3>
+                    Upcoming Holidays
+                  </h3>
+
+                  <p>
+                    Holidays from your institution's list
+                  </p>
+                </div>
+
+              </div>
+
+            </div>
+
+            <div class="panel-body scroll-body">
+              <ul
+                v-if="!holidaysLoading && upcomingHolidays.length"
+                class="student-list"
+              >
+                <li
+                  v-for="holiday in upcomingHolidays"
+                  :key="holiday.date + '|' + holiday.name"
+                >
+                  <div>
+                    <strong>
+                      {{ holiday.name }}
+                    </strong>
+
+                    <span>
+                      {{ formatDate(holiday.date) }}<template
+                        v-if="holidayTypeLabel(holiday)"
+                      >
+                        · {{ holidayTypeLabel(holiday) }}
+                      </template>
+                    </span>
+                  </div>
+
+                  <span
+                    class="student-chip"
+                    :class="holiday.status === 'tentative' ? 'chip-amber' : 'chip-green'"
+                  >
+                    {{ holiday.status === 'tentative' ? 'Tentative' : 'Confirmed' }}
+                  </span>
+                </li>
+              </ul>
+
+              <div v-else class="empty">
+                {{ holidaysLoading ? 'Loading upcoming holidays…' : 'No upcoming holidays.' }}
+              </div>
+            </div>
+
+          </section>
+
         </div>
 
     </div>
@@ -848,6 +933,10 @@ export default {
       notifications: [],
 
       notificationsLoading: false,
+
+      upcomingHolidays: [],
+
+      holidaysLoading: true,
 
       notificationsError: '',
 
@@ -1010,6 +1099,14 @@ export default {
       return Array.isArray(rows) ? rows.slice(0, 6) : []
     },
 
+    studentToday() {
+      const rows = this.studentDashboard?.timetable
+
+      return Array.isArray(rows)
+        ? rows.filter(session => session.isToday).slice(0, 8)
+        : []
+    },
+
     studentLeaveRows() {
       const rows = this.studentDashboard?.leave_applications
 
@@ -1098,6 +1195,7 @@ export default {
   mounted() {
   this.loadDashboard()
   this.loadNotifications()
+  this.loadUpcomingHolidays()
   window.addEventListener('student-notifications-updated', this.loadNotifications)
   this._bellOutsideHandler = (event) => {
     if (!this.notificationsOpen) return
@@ -1132,7 +1230,13 @@ beforeUnmount() {
 },
 
   methods: {
-    
+
+goTo(path) {
+  if (this.$route?.path !== path) {
+    this.$router.push(path).catch(() => {})
+  }
+},
+
 async loadNotifications() {
   this.notificationsLoading = true
   this.notificationsError = ''
@@ -1269,6 +1373,87 @@ reportDashboardHeight() {
 
       return result
     },
+
+    async loadUpcomingHolidays() {
+      this.holidaysLoading = true
+
+      try {
+        const year = new Date().getFullYear()
+
+        const requestYear = (targetYear) =>
+          this.fetchJson(
+            '/api/method/backend_custom_app.api.holidays.get_holidays' +
+            `?payload=${encodeURIComponent(JSON.stringify({ year: targetYear }))}`
+          )
+
+        const [currentResult, nextResult] = await Promise.all([
+          requestYear(year),
+          requestYear(year + 1),
+        ])
+
+        const rows = [
+          ...(currentResult?.message?.holidays || []),
+          ...(nextResult?.message?.holidays || []),
+        ]
+
+        const startOfToday = new Date()
+        startOfToday.setHours(0, 0, 0, 0)
+
+        const seen = new Set()
+
+        this.upcomingHolidays = rows
+          .filter((row) => {
+            if (!row?.date) {
+              return false
+            }
+
+            const parts = String(row.date).split('-')
+            const parsed = new Date(
+              Number(parts[0]),
+              Number(parts[1] || 1) - 1,
+              Number(parts[2] || 1)
+            )
+
+            if (
+              Number.isNaN(parsed.getTime()) ||
+              parsed.getTime() < startOfToday.getTime()
+            ) {
+              return false
+            }
+
+            const key = `${row.date}|${row.name}`
+
+            if (seen.has(key)) {
+              return false
+            }
+
+            seen.add(key)
+            return true
+          })
+          .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+          .slice(0, 8)
+      } catch (requestError) {
+        console.warn('Upcoming holidays error:', requestError)
+        this.upcomingHolidays = []
+      } finally {
+        this.holidaysLoading = false
+      }
+    },
+
+    holidayTypeLabel(holiday) {
+      const type = String(holiday?.type || '').toLowerCase()
+
+      if (type === 'gazetted') {
+        return 'Gazetted holiday'
+      }
+
+      if (type === 'restricted') {
+        return 'Restricted holiday'
+      }
+
+      return ''
+    },
+
     async loadDashboard() {
       this.loading = true
       this.error = null
@@ -2078,7 +2263,7 @@ padding: 24px 32px;
 
   color: #94a3b8;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
 
   text-transform: uppercase;
@@ -2228,6 +2413,30 @@ padding: 24px 32px;
     rgba(69, 61, 137, 0.035);
 }
 
+.stat-card.is-clickable {
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.stat-card.is-clickable:hover {
+  transform: translateY(-2px);
+
+  border-color: #c9c4e4;
+
+  box-shadow:
+    0 10px 26px
+    rgba(69, 61, 137, 0.12);
+}
+
+.stat-card.is-clickable:focus-visible {
+  outline: 2px solid #453D89;
+  outline-offset: 2px;
+}
+
 .stat-card-top {
   position: relative;
   z-index: 2;
@@ -2272,7 +2481,7 @@ padding: 24px 32px;
 }
 
 .stat-tag{
-  padding: 4px 7px;
+  padding: 4px 8px;
 
   border-radius: 6px;
 
@@ -2280,7 +2489,7 @@ padding: 24px 32px;
 
   background: #F3EFF9;
 
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 800;
 
   letter-spacing: 0.04em;
@@ -2313,7 +2522,7 @@ padding: 24px 32px;
 
   color: #64748b;
 
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .stat-body strong{
@@ -2340,9 +2549,9 @@ padding: 24px 32px;
 
   margin-top: 14px;
 
-  color: #94a3b8;
+  color: #64748b;
 
-  font-size: 8px;
+  font-size: 11px;
 }
 
 .green-dot,
@@ -2413,7 +2622,7 @@ padding: 24px 32px;
 .section-kicker{
   color: #64748b;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 800;
 
   letter-spacing: 0.12em;
@@ -2529,22 +2738,22 @@ padding: 24px 32px;
 
   color: #1e293b;
 
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 800;
 }
 
 .panel-title p{
   margin: 3px 0 0;
 
-  color: #94a3b8;
+  color: #64748b;
 
-  font-size: 8px;
+  font-size: 11px;
 }
 
 .view-link{
   color: var(--theme-purple, #453D89);
 
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 700;
 
   text-decoration: none;
@@ -2566,7 +2775,7 @@ padding: 24px 32px;
 
   background: #F3EFF9;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -2611,7 +2820,7 @@ padding: 24px 32px;
 
   color: #64748b;
 
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .academic-mini strong {
@@ -2631,7 +2840,7 @@ padding: 24px 32px;
 
   color: #94a3b8;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .blue-mini {
@@ -2694,7 +2903,7 @@ padding: 24px 32px;
 
   background: #EDEBFA;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -2720,7 +2929,7 @@ padding: 24px 32px;
 
   color: #94a3b8;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .program-progress-wrap {
@@ -2764,7 +2973,7 @@ padding: 24px 32px;
 
   color: #64748b;
 
-  font-size: 7px;
+  font-size: 10px;
   text-align: right;
 }
 
@@ -2793,7 +3002,7 @@ padding: 24px 32px;
 
   color: #94a3b8;
 
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -2929,7 +3138,7 @@ padding: 24px 32px;
 .chart-item > span{
   color: #94a3b8;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .chart-tooltip{
@@ -3238,7 +3447,7 @@ padding: 24px 32px;
 
   color: #94a3b8;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .payment-count{
@@ -3280,7 +3489,7 @@ padding: 24px 32px;
 
   color: #94a3b8;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .collection-value{
@@ -3323,7 +3532,7 @@ padding: 24px 32px;
 
   color: #94a3b8;
 
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .payment-summary strong{
@@ -3392,7 +3601,7 @@ padding: 24px 32px;
 
   background: #F3EFF9;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -3407,7 +3616,7 @@ padding: 24px 32px;
 
   color: #334155;
 
-  font-size: 8px;
+  font-size: 10px;
 
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3420,13 +3629,13 @@ padding: 24px 32px;
 
   color: #94a3b8;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .payment-date{
   color: #64748b;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .payment-amount{
@@ -3445,7 +3654,7 @@ padding: 24px 32px;
 
   background: #dcfce7;
 
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -3536,7 +3745,7 @@ padding: 24px 32px;
 
   color: #94a3b8;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .notification-item b{
@@ -3592,7 +3801,7 @@ padding: 24px 32px;
 .whatsapp-alert strong{
   color: #334155;
 
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .whatsapp-alert span{
@@ -3600,7 +3809,7 @@ padding: 24px 32px;
 
   color: #64748b;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 /* =========================================================
@@ -3660,7 +3869,7 @@ padding: 24px 32px;
 .attendance-stat span{
   margin-top: 4px;
 
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 700;
 }
 
@@ -3794,7 +4003,7 @@ padding: 24px 32px;
 
   color: #94a3b8;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .course-status{
@@ -3806,7 +4015,7 @@ padding: 24px 32px;
 
   background: #dcfce7;
 
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -3901,7 +4110,7 @@ padding: 24px 32px;
 
   color: #94a3b8;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .schedule-time strong{
@@ -3919,7 +4128,7 @@ padding: 24px 32px;
 
   color: #94a3b8;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .schedule-extra{
@@ -3930,7 +4139,7 @@ padding: 24px 32px;
 
   color: #64748b;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 /* =========================================================
@@ -4013,7 +4222,7 @@ padding: 24px 32px;
 
   color: #64748b;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .assessment-main small{
@@ -4021,7 +4230,7 @@ padding: 24px 32px;
 
   color: #94a3b8;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .assessment-meta {
@@ -4047,7 +4256,7 @@ padding: 24px 32px;
 
   color: var(--theme-purple, #453D89);
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .assessment-meta small{
@@ -4055,7 +4264,7 @@ padding: 24px 32px;
 
   color: #94a3b8;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 /* =========================================================
@@ -4102,7 +4311,7 @@ padding: 24px 32px;
 
   background: #eef2ff;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -4140,7 +4349,7 @@ padding: 24px 32px;
 
   color: #64748b;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .instructor-info small,
@@ -4149,7 +4358,7 @@ padding: 24px 32px;
 
   color: #94a3b8;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .active-status{
@@ -4161,7 +4370,7 @@ padding: 24px 32px;
 
   background: #dcfce7;
 
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -4202,7 +4411,7 @@ padding: 24px 32px;
 .group-counts b{
   color: #334155;
 
-  font-size: 8px;
+  font-size: 10px;
 }
 
 /* =========================================================
@@ -4264,7 +4473,7 @@ padding: 24px 32px;
 
   color: #FCEAF4;
 
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .student-stat {
@@ -4280,7 +4489,7 @@ padding: 24px 32px;
 
   color: #64748b;
 
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .student-stat.active strong {
@@ -4320,7 +4529,7 @@ padding: 24px 32px;
 
   color: #475569;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 600;
 }
 
@@ -4380,7 +4589,7 @@ padding: 24px 32px;
 
   color: #94a3b8;
 
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .quick-grid {
@@ -4476,7 +4685,7 @@ padding: 24px 32px;
 
   color: #94a3b8;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .quick-card > b {
@@ -4505,7 +4714,7 @@ padding: 24px 32px;
 
   color: #94a3b8;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 /* =========================================================
@@ -5353,6 +5562,15 @@ padding: 24px 32px;
   color: #b45309;
 }
 
+.holiday-panel {
+  grid-column: 1 / -1;
+}
+
+.holiday-panel .panel-icon {
+  color: #fff;
+  background: linear-gradient(135deg, #453D89 0%, #C8499A 100%);
+}
+
 @media (max-width: 1100px) {
   .student-grid {
     grid-template-columns: 1fr;
@@ -5582,7 +5800,7 @@ padding: 24px 32px;
 }
 
 .field-label {
-  color: #94a3b8;
+  color: #64748b;
 
   font-size: 13px;
   font-weight: 650;
@@ -5681,7 +5899,7 @@ padding: 24px 32px;
 </style>
 
 <style>
-/* Student dashboard: prevent Upcoming Classes content overlapping on mobile */
+/* Student dashboard: prevent Today's Classes content overlapping on mobile */
 @media (max-width: 650px) {
   .student-dashboard .student-grid > * {
     min-width: 0;
@@ -5711,7 +5929,7 @@ padding: 24px 32px;
 </style>
 
 <style>
-/* Fix student Upcoming Classes cards on mobile */
+/* Fix student Today's Classes cards on mobile */
 @media (max-width: 650px) {
   .student-dashboard .student-grid > .panel .student-list > li {
     display: flex;

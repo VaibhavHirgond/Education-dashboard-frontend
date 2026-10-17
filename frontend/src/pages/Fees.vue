@@ -2003,7 +2003,7 @@ export default {
 
   border-radius: 999px;
 
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 750;
 }
 
@@ -2060,7 +2060,7 @@ export default {
 
   color: #94a3b8;
 
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .card-line {
@@ -2205,7 +2205,7 @@ export default {
 .overview-label{
   color: #D96BB0;
 
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 800;
 
   letter-spacing: 0.14em;
@@ -2225,7 +2225,7 @@ export default {
 
   color: #9fb2ce;
 
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .overview-stats {
@@ -2247,7 +2247,7 @@ export default {
 
   color: #8298b7;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .overview-stat strong {
@@ -2687,7 +2687,7 @@ export default {
 
   color: #94a3b8;
 
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .result-count{
@@ -2700,7 +2700,7 @@ export default {
 
   background: #f8fafc;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 650;
 }
 
@@ -2917,7 +2917,7 @@ export default {
 
   color: #453D89;
 
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 800;
 
   letter-spacing: 0.14em;
@@ -2937,7 +2937,7 @@ export default {
 
   color: #94a3b8;
 
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .payment-count{
@@ -2954,7 +2954,7 @@ export default {
 
   background: #f8fafc;
 
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .payment-count span {
@@ -3034,7 +3034,7 @@ export default {
 
   background: #f8fafc;
 
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 800;
 
   letter-spacing: 0.07em;
@@ -3129,7 +3129,7 @@ export default {
 
   color: #94a3b8;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .invoice-number{
@@ -3141,7 +3141,7 @@ export default {
     Menlo,
     monospace;
 
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .fee-type {
@@ -3195,7 +3195,7 @@ export default {
 
   border-radius: 999px;
 
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 750;
 
   white-space: nowrap;
@@ -3231,7 +3231,7 @@ export default {
 .date-value{
   color: #64748b;
 
-  font-size: 8px;
+  font-size: 10px;
 
   white-space: nowrap;
 }
@@ -3296,7 +3296,7 @@ export default {
 
   color: #94a3b8;
 
-  font-size: 8px;
+  font-size: 10px;
 }
 
 
@@ -3360,7 +3360,7 @@ export default {
 
   color: #94a3b8;
 
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .empty-state button{
@@ -3375,7 +3375,7 @@ export default {
 
   background: #F3EFF9;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
 
   cursor: pointer;
@@ -3400,7 +3400,7 @@ export default {
 
   color: #94a3b8;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .footer-dot {
@@ -3576,7 +3576,7 @@ export default {
 
   .card-label {
     margin-top: 11px;
-    font-size: 8px;
+    font-size: 10px;
   }
 
   .card-value {
@@ -3584,7 +3584,7 @@ export default {
   }
 
   .card-description {
-    font-size: 7px;
+    font-size: 10px;
   }
 
   .card-line {
@@ -3721,7 +3721,7 @@ export default {
     display: block;
     overflow: hidden;
     color: #475569;
-    font-size: 8px;
+    font-size: 10px;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -3767,12 +3767,12 @@ export default {
 
   .payment-card-footer span {
     color: #94a3b8;
-    font-size: 7px;
+    font-size: 10px;
   }
 
   .payment-card-footer strong {
     color: #475569;
-    font-size: 8px;
+    font-size: 10px;
   }
 
   .page-footer {
@@ -3827,7 +3827,7 @@ export default {
   }
 
   .breadcrumb {
-    font-size: 7px;
+    font-size: 10px;
   }
 
   .heading-row h1 {
@@ -3835,7 +3835,7 @@ export default {
   }
 
   .heading-row p {
-    font-size: 8px;
+    font-size: 10px;
   }
 
   .summary-grid {
@@ -3859,7 +3859,7 @@ export default {
 
   .card-label {
     margin-top: 9px;
-    font-size: 7px;
+    font-size: 10px;
   }
 
   .card-value {
@@ -3881,7 +3881,7 @@ export default {
   }
 
   .overview-left p {
-    font-size: 7px;
+    font-size: 10px;
   }
 
   .overview-stats {
@@ -3909,7 +3909,7 @@ export default {
   }
 
   .filter-title p {
-    font-size: 7px;
+    font-size: 10px;
   }
 
   .filter-icon {
@@ -3920,7 +3920,7 @@ export default {
 
   .search-wrapper input, .select-wrapper select, .apply-button {
     height: 39px;
-    font-size: 8px;
+    font-size: 10px;
   }
 
   .payments-header {
@@ -3932,7 +3932,7 @@ export default {
   }
 
   .payments-header p {
-    font-size: 7px;
+    font-size: 10px;
   }
 
   .mobile-payment-list {
@@ -3946,7 +3946,7 @@ export default {
 
   .payment-card .student-info strong {
     max-width: 140px;
-    font-size: 8px;
+    font-size: 10px;
   }
 
   .payment-card .status-pill {
@@ -3967,7 +3967,7 @@ export default {
   }
 
   .money-item strong {
-    font-size: 8px;
+    font-size: 10px;
   }
 
   .payment-card-footer {
@@ -4002,7 +4002,7 @@ export default {
   }
 
   
-.heading-row p {    font-size: 8px;
+.heading-row p {    font-size: 10px;
   }  .payment-card {
     padding: 9px;
   }
@@ -4010,7 +4010,7 @@ export default {
   
 .payment-card .student-info strong {    max-width: 110px;
 
-    font-size: 7px;
+    font-size: 10px;
   }  .mobile-money {
     gap: 5px;
   }

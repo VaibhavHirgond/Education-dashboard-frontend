@@ -396,7 +396,7 @@ export default {
 .brand-text span{
   display: block;
   margin-top: 3px;
-  color: #94a3b8;
+  color: rgba(255, 255, 255, 0.65);
   font-size: 10px;
   white-space: nowrap;
 }
@@ -410,8 +410,8 @@ export default {
 
 .navigation-label{
   margin: 0 10px 9px;
-  color: #64748b;
-  font-size: 9px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.12em;
 }
@@ -430,9 +430,9 @@ export default {
   box-sizing: border-box;
   padding: 10px 13px;
   border-radius: 10px;
-  color: #94a3b8;
+  color: rgba(255, 255, 255, 0.82);
   text-decoration: none;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
   transition: color 0.2s ease, background 0.2s ease;
@@ -452,14 +452,15 @@ export default {
 }
 
 .navigation-item:hover {
-  color: #fff;
-  background: rgba(148, 163, 184, 0.08);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .navigation-active {
-  color: #fff;
-  background: var(--theme-sidebar-active, linear-gradient(105deg, #453D89, #C8499A));
-  box-shadow: inset 0 0 0 1px rgba(200, 73, 154, 0.15);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  font-weight: 600;
 }
 
 .navigation-active::before {
@@ -469,8 +470,8 @@ export default {
   width: 3px;
   height: 20px;
   border-radius: 0 4px 4px 0;
-  background: linear-gradient(180deg, #453D89, #C8499A);
-  box-shadow: 0 0 12px rgba(200, 73, 154, 0.4);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.45);
 }
 
 .nav-icon{

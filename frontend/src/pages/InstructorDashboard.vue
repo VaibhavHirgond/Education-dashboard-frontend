@@ -34,61 +34,65 @@
             <div class="hero-orb orb-two"></div>
           </section>
 
-          <section class="toolbar-panel">
-            <div class="toolbar-header">
-              <div>
-                <span class="eyebrow">FILTERS</span>
-                <h3>Instructor date range</h3>
+          <section class="overview-row">
+            <section v-if="instructorProfile" class="profile-panel">
+              <div class="profile-avatar">{{ instructorInitials }}</div>
+
+              <div class="profile-copy">
+                <span class="eyebrow">PROFILE</span>
+                <h3>{{ instructorName }}</h3>
+                <div class="profile-meta">
+                  <span v-if="instructorProfile.email">✉ {{ instructorProfile.email }}</span>
+                  <span v-if="instructorProfile.status">● {{ instructorProfile.status }}</span>
+                  <span>{{ myClassesCount }} assigned groups</span>
+                </div>
               </div>
-              <span v-if="hasActiveFilters" class="filter-badge">Filtered</span>
-            </div>
 
-            <div class="toolbar-fields">
-              <label class="filter-field">
-                <span>Start date</span>
-                <input v-model="startDate" type="date" />
-              </label>
-
-              <label class="filter-field">
-                <span>End date</span>
-                <input v-model="endDate" type="date" />
-              </label>
-            </div>
-
-            <div class="toolbar-actions">
-              <button type="button" class="primary-btn" @click="applyFilter">Apply Filter</button>
-              <button type="button" class="secondary-btn" @click="resetFilters">Reset</button>
-              <button v-if="hasActiveFilters" type="button" class="text-btn" @click="backToOverview">Back</button>
-            </div>
-          </section>
-
-          <section v-if="instructorProfile" class="profile-panel">
-            <div class="profile-avatar">{{ instructorInitials }}</div>
-
-            <div class="profile-copy">
-              <span class="eyebrow">PROFILE</span>
-              <h3>{{ instructorName }}</h3>
-              <div class="profile-meta">
-                <span v-if="instructorProfile.email">✉ {{ instructorProfile.email }}</span>
-                <span v-if="instructorProfile.status">● {{ instructorProfile.status }}</span>
-                <span>{{ myClassesCount }} assigned groups</span>
+              <div class="profile-metrics">
+                <div>
+                  <strong>{{ students.length }}</strong>
+                  <span>Students</span>
+                </div>
+                <div>
+                  <strong>{{ myCoursesCount }}</strong>
+                  <span>Courses</span>
+                </div>
+                <div>
+                  <strong>{{ todayClassesCount }}</strong>
+                  <span>Today</span>
+                </div>
               </div>
-            </div>
+            </section>
 
-            <div class="profile-metrics">
-              <div>
-                <strong>{{ students.length }}</strong>
-                <span>Students</span>
+            <section class="toolbar-panel instructor-filter-panel">
+              <div class="toolbar-header">
+                <div>
+                  <span class="eyebrow">FILTERS</span>
+                  <h3>Date range</h3>
+                </div>
+                <span v-if="hasActiveFilters" class="filter-badge">Filtered</span>
               </div>
-              <div>
-                <strong>{{ myCoursesCount }}</strong>
-                <span>Courses</span>
+
+              <div class="toolbar-fields">
+                <label class="filter-field">
+                  <span>Start date</span>
+                  <input v-model="filters.startDate" type="date" :disabled="loading" />
+                </label>
+
+                <label class="filter-field">
+                  <span>End date</span>
+                  <input v-model="filters.endDate" type="date" :disabled="loading" />
+                </label>
+
+                <div class="toolbar-actions">
+                  <button type="button" class="primary-btn" :disabled="loading" @click="applyFilter">Apply Filter</button>
+                  <button type="button" class="secondary-btn" :disabled="loading" @click="resetFilters">Reset</button>
+                  <span v-if="loading" class="filter-status" role="status">Updating…</span>
+                </div>
               </div>
-              <div>
-                <strong>{{ todayClassesCount }}</strong>
-                <span>Today</span>
-              </div>
-            </div>
+
+              <p v-if="filterError" class="filter-error" role="alert">{{ filterError }}</p>
+            </section>
           </section>
 
           <div v-if="error" class="error-alert">
@@ -98,7 +102,15 @@
           </div>
 
           <section class="stats-grid instructor-stats">
-            <article class="stat-card blue-card">
+            <article
+              class="stat-card blue-card clickable-card"
+              role="link"
+              tabindex="0"
+              aria-label="Open the student list"
+              @click="navigateToDesk('/desk/student')"
+              @keydown.enter.prevent="navigateToDesk('/desk/student')"
+              @keydown.space.prevent="navigateToDesk('/desk/student')"
+            >
               <div class="stat-card-top">
                 <div class="stat-icon blue">♙</div>
                 <span class="stat-tag">STUDENTS</span>
@@ -114,7 +126,15 @@
               <div class="card-glow blue-glow"></div>
             </article>
 
-            <article class="stat-card purple-card">
+            <article
+              class="stat-card purple-card clickable-card"
+              role="link"
+              tabindex="0"
+              aria-label="Open the course list"
+              @click="navigateToDesk('/desk/course')"
+              @keydown.enter.prevent="navigateToDesk('/desk/course')"
+              @keydown.space.prevent="navigateToDesk('/desk/course')"
+            >
               <div class="stat-card-top">
                 <div class="stat-icon purple">▣</div>
                 <span class="stat-tag purple-tag">COURSES</span>
@@ -130,7 +150,15 @@
               <div class="card-glow purple-glow"></div>
             </article>
 
-            <article class="stat-card green-card">
+            <article
+              class="stat-card green-card clickable-card"
+              role="link"
+              tabindex="0"
+              aria-label="Open the student group list"
+              @click="navigateToDesk('/desk/student-group')"
+              @keydown.enter.prevent="navigateToDesk('/desk/student-group')"
+              @keydown.space.prevent="navigateToDesk('/desk/student-group')"
+            >
               <div class="stat-card-top">
                 <div class="stat-icon green">▤</div>
                 <span class="stat-tag green-tag">CLASSES</span>
@@ -146,7 +174,15 @@
               <div class="card-glow green-glow"></div>
             </article>
 
-            <article class="stat-card blue-card">
+            <article
+              class="stat-card blue-card clickable-card"
+              role="link"
+              tabindex="0"
+              aria-label="Open the class schedule"
+              @click="navigateToDesk(courseSchedulePath)"
+              @keydown.enter.prevent="navigateToDesk(courseSchedulePath)"
+              @keydown.space.prevent="navigateToDesk(courseSchedulePath)"
+            >
               <div class="stat-card-top">
                 <div class="stat-icon blue">◷</div>
                 <span class="stat-tag">TODAY</span>
@@ -163,34 +199,62 @@
             </article>
           </section>
 
+          <article
+            class="panel today-panel clickable-panel"
+            role="link"
+            tabindex="0"
+            aria-label="Open the class schedule"
+            @click="navigateToDesk(courseSchedulePath)"
+            @keydown.enter.prevent="navigateToDesk(courseSchedulePath)"
+            @keydown.space.prevent="navigateToDesk(courseSchedulePath)"
+          >
+            <div class="panel-header">
+              <div class="panel-title">
+                <div class="panel-icon blue">◷</div>
+                <div>
+                  <h3>Today's Classes</h3>
+                  <p>{{ hasActiveFilters ? 'Filtered schedule' : 'Classes scheduled for today' }}</p>
+                </div>
+              </div>
+              <div class="panel-header-actions">
+                <button
+                  type="button"
+                  class="add-schedule-btn"
+                  aria-label="Add a new class schedule"
+                  @click.stop="openNewCourseSchedule"
+                  @keydown.enter.stop.prevent="openNewCourseSchedule"
+                >
+                  + New
+                </button>
+                <span class="count-chip today-chip">{{ todayClassesCount }}</span>
+              </div>
+            </div>
+
+            <div v-if="todayClasses.length" class="stack-list">
+              <div v-for="session in todayClasses" :key="session.id || session.name || `${session.course}-${session.date}`" class="list-row">
+                <div>
+                  <strong>{{ session.course || 'Class' }}</strong>
+                  <small>{{ session.studentGroup || 'Group not available' }}</small>
+                </div>
+                <div class="list-meta">
+                  <span>{{ formatDate(session.date) || '—' }}</span>
+                  <small>{{ session.fromTime || '' }}{{ session.toTime ? ' - ' + session.toTime : '' }}</small>
+                </div>
+              </div>
+            </div>
+            <div v-else class="empty-state">No classes are scheduled in the selected date range.</div>
+          </article>
+
           <section class="detail-grid">
-            <article class="panel detail-panel">
-              <div class="panel-header">
-                <div class="panel-title">
-                  <div class="panel-icon blue">◷</div>
-                  <div>
-                    <h3>Today's Classes</h3>
-                    <p>{{ hasActiveFilters ? 'Filtered schedule' : 'Classes scheduled for today' }}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div v-if="todayClasses.length" class="stack-list">
-                <div v-for="session in todayClasses.slice(0, 6)" :key="session.id || session.name || `${session.course}-${session.date}`" class="list-row">
-                  <div>
-                    <strong>{{ session.course || 'Class' }}</strong>
-                    <small>{{ session.studentGroup || 'Group not available' }}</small>
-                  </div>
-                  <div class="list-meta">
-                    <span>{{ session.date || '—' }}</span>
-                    <small>{{ session.fromTime || '' }}{{ session.toTime ? ' - ' + session.toTime : '' }}</small>
-                  </div>
-                </div>
-              </div>
-              <div v-else class="empty-state">No classes are scheduled in the selected date range.</div>
-            </article>
-
-            <article class="panel detail-panel">
+            <article
+              class="panel detail-panel clickable-panel"
+              role="link"
+              tabindex="0"
+              aria-label="Open the student list"
+              @click="navigateToDesk('/desk/student')"
+              @keydown.enter.prevent="navigateToDesk('/desk/student')"
+              @keydown.space.prevent="navigateToDesk('/desk/student')"
+            >
               <div class="panel-header">
                 <div class="panel-title">
                   <div class="panel-icon green">♙</div>
@@ -202,7 +266,7 @@
               </div>
 
               <div v-if="students.length" class="stack-list compact-list">
-                <div v-for="student in students.slice(0, 8)" :key="student.id || student.name" class="list-row student-row">
+                <div v-for="student in students" :key="student.id || student.name" class="list-row student-row">
                   <div class="student-pill">{{ getInitials(student.name) }}</div>
                   <div>
                     <strong>{{ student.name }}</strong>
@@ -213,7 +277,15 @@
               <div v-else class="empty-state">No students are assigned to your groups yet.</div>
             </article>
 
-            <article class="panel detail-panel">
+            <article
+              class="panel detail-panel clickable-panel"
+              role="link"
+              tabindex="0"
+              aria-label="Open the course list"
+              @click="navigateToDesk('/desk/course')"
+              @keydown.enter.prevent="navigateToDesk('/desk/course')"
+              @keydown.space.prevent="navigateToDesk('/desk/course')"
+            >
               <div class="panel-header">
                 <div class="panel-title">
                   <div class="panel-icon purple">▣</div>
@@ -225,7 +297,7 @@
               </div>
 
               <div v-if="courses.length" class="stack-list compact-list">
-                <div v-for="course in courses.slice(0, 8)" :key="course.name || course.id || course.group" class="list-row">
+                <div v-for="course in courses" :key="course.name || course.id || course.group" class="list-row">
                   <div>
                     <strong>{{ course.name }}</strong>
                     <small>{{ course.group || 'Group not set' }}</small>
@@ -236,7 +308,15 @@
               <div v-else class="empty-state">No courses are assigned to your instructor groups.</div>
             </article>
 
-            <article class="panel detail-panel">
+            <article
+              class="panel detail-panel clickable-panel"
+              role="link"
+              tabindex="0"
+              aria-label="Open the student group list"
+              @click="navigateToDesk('/desk/student-group')"
+              @keydown.enter.prevent="navigateToDesk('/desk/student-group')"
+              @keydown.space.prevent="navigateToDesk('/desk/student-group')"
+            >
               <div class="panel-header">
                 <div class="panel-title">
                   <div class="panel-icon orange">▤</div>
@@ -248,7 +328,7 @@
               </div>
 
               <div v-if="groups.length" class="stack-list compact-list">
-                <div v-for="group in groups.slice(0, 8)" :key="group.id || group.name" class="list-row">
+                <div v-for="group in groups" :key="group.id || group.name" class="list-row">
                   <div>
                     <strong>{{ group.name }}</strong>
                     <small>{{ group.program || 'Program not set' }}</small>
@@ -258,6 +338,87 @@
               </div>
               <div v-else class="empty-state">No classes are currently assigned to this instructor.</div>
             </article>
+
+            <section
+              class="panel chart-panel clickable-panel"
+              role="link"
+              tabindex="0"
+              aria-label="Open the student attendance list"
+              @click="navigateToDesk(attendanceListPath)"
+              @keydown.enter.prevent="navigateToDesk(attendanceListPath)"
+              @keydown.space.prevent="navigateToDesk(attendanceListPath)"
+            >
+              <div class="panel-header">
+                <div class="panel-title">
+                  <div class="panel-icon purple">%</div>
+                  <div>
+                    <h3>Student Attendance</h3>
+                    <p>Daily present vs absent · your assigned groups<span v-if="attendancePeriodLabel"> · {{ attendancePeriodLabel }}</span></p>
+                  </div>
+                </div>
+                <div class="panel-total">
+                  <span>RANGE TOTALS</span>
+                  <strong class="attendance-totals">
+                    <span>Present {{ attendanceTotals.present }}</span>
+                    <i aria-hidden="true">·</i>
+                    <span>Absent {{ attendanceTotals.absent }}</span>
+                  </strong>
+                </div>
+              </div>
+
+              <div class="chart-legend">
+                <span class="legend-item"><i class="legend-dot present-dot"></i>Present</span>
+                <span class="legend-item"><i class="legend-dot absent-dot"></i>Absent</span>
+              </div>
+
+              <div class="chart">
+                <div class="chart-y">
+                  <span v-for="(label, index) in attendanceChartAxis" :key="`att-y-${index}`">{{ label }}</span>
+                </div>
+
+                <div class="chart-grid">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+
+                <div class="chart-bars">
+                  <div
+                    v-for="day in attendanceTrend"
+                    :key="day.date"
+                    class="chart-item"
+                    tabindex="0"
+                  >
+                    <div class="chart-tooltip">{{ attendanceTooltip(day) }}</div>
+
+                    <div class="bar-area dual-bar">
+                      <div
+                        class="bar bar-present"
+                        :style="{ height: `${getPresentBarHeight(day.present)}%` }"
+                      >
+                        <div class="bar-highlight"></div>
+                      </div>
+                      <div
+                        class="bar bar-absent"
+                        :style="{ height: `${getAbsentBarHeight(day.absent)}%` }"
+                      >
+                        <div class="bar-highlight"></div>
+                      </div>
+                    </div>
+
+                    <span>{{ shortDateDay(day.date) }}<span class="chart-x-month"> {{ shortDateMonth(day.date) }}</span></span>
+                  </div>
+
+                  <div v-if="!hasAttendanceChartData" class="chart-empty">
+                    No submitted attendance records in this date range.
+                  </div>
+                </div>
+              </div>
+
+              <p class="chart-open-hint">Open the full attendance list →</p>
+            </section>
           </section>
 
           <section class="quick-section">
@@ -267,7 +428,7 @@
             </div>
 
             <div class="quick-grid">
-              <a href="/desk/student" class="quick-card green-quick" onclick="window.top.location.href=this.href; return false;">
+              <a href="/desk/student" class="quick-card green-quick" @click.prevent="navigateToDesk('/desk/student')">
                 <div class="quick-icon">♙</div>
                 <div>
                   <strong>My Students</strong>
@@ -276,7 +437,7 @@
                 <b>→</b>
               </a>
 
-              <a href="/desk/student-group" class="quick-card orange-quick" onclick="window.top.location.href=this.href; return false;">
+              <a href="/desk/student-group" class="quick-card orange-quick" @click.prevent="navigateToDesk('/desk/student-group')">
                 <div class="quick-icon">▤</div>
                 <div>
                   <strong>My Classes</strong>
@@ -285,7 +446,7 @@
                 <b>→</b>
               </a>
 
-              <a href="/desk/course-schedule" class="quick-card purple-quick" onclick="window.top.location.href=this.href; return false;">
+              <a href="/desk/course-schedule" class="quick-card purple-quick" @click.prevent="navigateToDesk('/desk/course-schedule')">
                 <div class="quick-icon">◷</div>
                 <div>
                   <strong>Schedule</strong>
@@ -294,7 +455,7 @@
                 <b>→</b>
               </a>
 
-              <a href="/desk/student-attendance" class="quick-card blue-quick" onclick="window.top.location.href=this.href; return false;">
+              <a href="/desk/student-attendance" class="quick-card blue-quick" @click.prevent="navigateToDesk('/desk/student-attendance')">
                 <div class="quick-icon">✓</div>
                 <div>
                   <strong>Attendance</strong>
@@ -333,8 +494,9 @@ export default {
         students_count: 0,
         sessions_count: 0,
       },
-      startDate: '',
-      endDate: '',
+      filters: { startDate: '', endDate: '' },
+      appliedRange: { start: '', end: '' },
+      filterError: null,
     }
   },
 
@@ -348,7 +510,15 @@ export default {
     },
 
     hasActiveFilters() {
-      return Boolean(this.startDate || this.endDate)
+      return Boolean(this.appliedRange.start || this.appliedRange.end)
+    },
+
+    courseSchedulePath() {
+      const instructorId = this.instructorProfile?.id
+
+      return instructorId
+        ? `/desk/course-schedule?instructor=${encodeURIComponent(instructorId)}`
+        : '/desk/course-schedule'
     },
 
     instructorProfile() {
@@ -412,6 +582,75 @@ export default {
 
     todayClassesCount() {
       return this.todayClasses.length
+    },
+
+    attendanceTrend() {
+      const trend = this.dashboard?.attendance?.trend
+
+      return Array.isArray(trend) ? trend : []
+    },
+
+    attendanceChartMax() {
+      return this.attendanceTrend.reduce(
+        (max, day) =>
+          Math.max(
+            max,
+            Number(day.present) || 0,
+            Number(day.absent) || 0
+          ),
+        0
+      )
+    },
+
+    attendanceChartAxis() {
+      const max = Math.max(this.attendanceChartMax, 1)
+
+      const quarter = max * 0.75
+      const half = max * 0.5
+      const third = max * 0.25
+
+      const round = value =>
+        Number.isInteger(value) ? value : Math.round(value * 10) / 10
+
+      return [
+        String(round(max)),
+        String(round(quarter)),
+        String(round(half)),
+        String(round(third)),
+        '0',
+      ]
+    },
+
+    hasAttendanceChartData() {
+      return this.attendanceTrend.some(
+        day => (Number(day.present) || 0) > 0 || (Number(day.absent) || 0) > 0
+      )
+    },
+
+    attendancePeriodLabel() {
+      const filters = this.dashboard?.filters
+      const start = filters?.start_date
+      const end = filters?.end_date
+
+      if (!start || !end) {
+        return ''
+      }
+
+      return `${this.formatDate(start)} - ${this.formatDate(end)}`
+    },
+
+    attendanceTotals() {
+      return this.attendanceTrend.reduce(
+        (acc, day) => ({
+          present: acc.present + (Number(day.present) || 0),
+          absent: acc.absent + (Number(day.absent) || 0),
+        }),
+        { present: 0, absent: 0 }
+      )
+    },
+
+    attendanceListPath() {
+      return '/desk/student-attendance'
     },
   },
 
@@ -509,12 +748,12 @@ export default {
 
         const params = new URLSearchParams()
 
-        if (this.startDate) {
-          params.set('start_date', this.startDate)
+        if (this.appliedRange.start) {
+          params.set('start_date', this.appliedRange.start)
         }
 
-        if (this.endDate) {
-          params.set('end_date', this.endDate)
+        if (this.appliedRange.end) {
+          params.set('end_date', this.appliedRange.end)
         }
 
         const query = params.toString() ? `?${params.toString()}` : ''
@@ -538,22 +777,153 @@ export default {
     },
 
     applyFilter() {
-      if (this.startDate && this.endDate && this.startDate > this.endDate) {
-        this.error = 'Start date must be earlier than the end date.'
+      this.filterError = null
+
+      const start = String(this.filters.startDate || '').trim()
+      const end = String(this.filters.endDate || '').trim()
+
+      if (!start || !end) {
+        this.filterError = 'Select both a start date and an end date.'
         return
       }
 
+      const startParsed = new Date(start)
+      const endParsed = new Date(end)
+
+      if (
+        Number.isNaN(startParsed.getTime()) ||
+        Number.isNaN(endParsed.getTime())
+      ) {
+        this.filterError = 'Enter valid dates for both fields.'
+        return
+      }
+
+      // ISO yyyy-mm-dd strings compare correctly as strings.
+      if (start > end) {
+        this.filterError = 'Start date must be on or before the end date.'
+        return
+      }
+
+      this.appliedRange = { start, end }
       this.load()
     },
 
     resetFilters() {
-      this.startDate = ''
-      this.endDate = ''
+      this.filterError = null
+      this.appliedRange = { start: '', end: '' }
+      this.filters = { startDate: '', endDate: '' }
       this.load()
     },
 
-    backToOverview() {
-      this.resetFilters()
+    navigateToDesk(path) {
+      /*
+       * The dashboard runs inside the Desk iframe; navigate the
+       * top window so the whole desk changes page.
+       */
+      const target = window.top || window
+
+      try {
+        target.location.href = path
+      } catch (error) {
+        window.location.href = path
+      }
+    },
+
+    openNewCourseSchedule() {
+      /*
+       * Direct link to the Course Schedule creation form (the Desk
+       * "New Course Schedule" form), opened from the Today's Classes
+       * card header. Stop propagation so the panel's own navigation
+       * does not also fire.
+       */
+      this.navigateToDesk('/desk/course-schedule/new/course-schedule')
+    },
+
+    formatDate(value) {
+      if (!value) {
+        return ''
+      }
+
+      const parts = String(value).split('-')
+
+      if (parts.length < 3) {
+        return String(value)
+      }
+
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      ]
+
+      const monthIndex = Number(parts[1]) - 1
+      const month = months[monthIndex] || parts[1]
+
+      return `${Number(parts[2])} ${month} ${parts[0]}`
+    },
+
+    shortDateLabel(value) {
+      if (!value) {
+        return ''
+      }
+
+      const parts = String(value).split('-')
+
+      if (parts.length < 3) {
+        return String(value)
+      }
+
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      ]
+
+      const monthIndex = Number(parts[1]) - 1
+
+      return `${Number(parts[2])} ${months[monthIndex] || parts[1]}`
+    },
+
+    shortDateDay(value) {
+      return this.shortDateLabel(value).split(' ')[0] || ''
+    },
+
+    shortDateMonth(value) {
+      return this.shortDateLabel(value).split(' ')[1] || ''
+    },
+
+    getPresentBarHeight(count) {
+      return this.getAttendanceBarHeight(count)
+    },
+
+    getAbsentBarHeight(count) {
+      return this.getAttendanceBarHeight(count)
+    },
+
+    getAttendanceBarHeight(count) {
+      const value = Number(count)
+      const max = Math.max(this.attendanceChartMax, 1)
+
+      if (!Number.isFinite(value) || value <= 0) {
+        return 0
+      }
+
+      return Math.max(
+        Math.round((value / max) * 100),
+        6
+      )
+    },
+
+    attendanceTooltip(day) {
+      const present = Number(day.present) || 0
+      const absent = Number(day.absent) || 0
+      const leave = Number(day.leave) || 0
+
+      const parts = [`Present ${present}`, `Absent ${absent}`]
+
+      if (leave > 0) {
+        parts.push(`Leave ${leave}`)
+      }
+
+      return `${day.label || this.formatDate(day.date)}: ${parts.join(' · ')}`
     },
 
   },
@@ -898,7 +1268,7 @@ export default {
 
   background: #F3EFF9;
 
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 800;
 
   letter-spacing: 0.04em;
@@ -926,7 +1296,8 @@ export default {
 
   color: #64748b;
 
-  font-size: 10px;
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .stat-body strong {
@@ -936,7 +1307,7 @@ export default {
 
   color: #1E1B33;
 
-  font-size: 25px;
+  font-size: 24px;
   font-weight: 800;
 
   letter-spacing: -0.04em;
@@ -964,9 +1335,10 @@ export default {
 
   margin-top: 14px;
 
-  color: #94a3b8;
+  color: #64748b;
 
-  font-size: 9px;
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 .green-dot {
@@ -1067,16 +1439,20 @@ export default {
 
   color: #1e293b;
 
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
+
+  line-height: 1.3;
 }
 
 .panel-title p {
   margin: 3px 0 0;
 
-  color: #94a3b8;
+  color: #64748b;
 
-  font-size: 9px;
+  font-size: 10.5px;
+
+  line-height: 1.4;
 }
 
 /* =========================================================
@@ -1102,9 +1478,9 @@ export default {
 .quick-heading p {
   margin: 4px 0 0;
 
-  color: #94a3b8;
+  color: #64748b;
 
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .quick-grid {
@@ -1177,15 +1553,20 @@ export default {
 .quick-card strong {
   color: #334155;
 
-  font-size: 10px;
+  font-size: 12px;
+  font-weight: 700;
+
+  overflow-wrap: anywhere;
 }
 
 .quick-card span {
   margin-top: 3px;
 
-  color: #94a3b8;
+  color: #64748b;
 
-  font-size: 9px;
+  font-size: 10px;
+
+  overflow-wrap: anywhere;
 }
 
 .quick-card > b {
@@ -1218,9 +1599,10 @@ export default {
 
 .toolbar-panel,
 .profile-panel,
-.detail-panel {
+.detail-panel,
+.today-panel {
   margin-top: 18px;
-  padding: 18px 20px;
+  padding: 16px 18px;
 
   border: 1px solid #e2e8f0;
   border-radius: 16px;
@@ -1229,15 +1611,79 @@ export default {
   box-shadow: 0 5px 18px rgba(69, 61, 137, 0.035);
 }
 
+/* Compact date-range filter (mirrors the Admin dashboard) */
+
+.instructor-filter-panel {
+  margin-top: 12px;
+  padding: 10px 14px;
+
+  border-radius: 14px;
+
+  box-shadow: 0 4px 14px rgba(69, 61, 137, 0.035);
+}
+
+/* Combined profile + date-filter row */
+
+.overview-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  align-items: stretch;
+
+  gap: 13px;
+  margin-top: 18px;
+}
+
+.overview-row .profile-panel,
+.overview-row .instructor-filter-panel {
+  min-width: 0;
+  margin-top: 0;
+}
+
+.overview-row .instructor-filter-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* One compact row: Start · End · Apply · Reset */
+
+.instructor-filter-panel .toolbar-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.instructor-filter-panel .filter-field {
+  flex: 1 1 120px;
+  max-width: 160px;
+}
+
+.instructor-filter-panel .toolbar-actions {
+  flex: 0 0 auto;
+  margin-top: 0;
+}
+
 .toolbar-header,
 .profile-panel {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
+  gap: 12px;
 }
 
-.toolbar-header h3,
+.toolbar-header h3 {
+  margin: 0;
+
+  color: #1e293b;
+  font-size: 13px;
+  font-weight: 800;
+
+  line-height: 1.2;
+}
+
 .profile-copy h3 {
   margin: 0;
 
@@ -1247,67 +1693,75 @@ export default {
 }
 
 .filter-badge {
-  padding: 6px 10px;
+  padding: 3px 8px;
 
   border-radius: 999px;
 
   color: #6d28d9;
   background: #f3e8ff;
 
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
 }
 
 .toolbar-fields {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 180px));
-  gap: 12px;
-  margin-top: 16px;
+  grid-template-columns: repeat(2, minmax(0, 148px));
+  gap: 10px;
+  margin-top: 8px;
 }
 
 .filter-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
+
+  min-width: 0;
 }
 
 .filter-field span {
-  color: #64748b;
-  font-size: 9px;
+  color: #475569;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
 .filter-field input {
   width: 100%;
-  padding: 10px 12px;
+  min-width: 0;
+  padding: 6px 8px;
 
   border: 1px solid #dfe7f1;
-  border-radius: 10px;
+  border-radius: 8px;
 
   color: #1f2937;
   background: #f8fafc;
 
   font: inherit;
+  font-size: 12px;
+}
+
+.filter-field input:disabled {
+  opacity: 0.65;
 }
 
 .toolbar-actions {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 16px;
+  align-items: center;
+
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .primary-btn,
-.secondary-btn,
-.text-btn {
-  padding: 9px 14px;
+.secondary-btn {
+  padding: 6px 12px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 8px;
 
-  font-size: 10px;
+  font-size: 11.5px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -1322,9 +1776,26 @@ export default {
   background: #eef2ff;
 }
 
-.text-btn {
-  color: #4f46e5;
-  background: transparent;
+.primary-btn:disabled,
+.secondary-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.filter-status {
+  color: #64748b;
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.filter-error {
+  margin: 8px 0 0;
+
+  color: #b91c1c;
+
+  font-size: 11.5px;
+  font-weight: 600;
 }
 
 .profile-panel {
@@ -1358,7 +1829,7 @@ export default {
   margin-top: 6px;
 
   color: #64748b;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .profile-metrics {
@@ -1385,7 +1856,7 @@ export default {
 
 .profile-metrics span {
   color: #64748b;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .detail-grid {
@@ -1397,11 +1868,510 @@ export default {
 
 .detail-panel {
   min-height: 220px;
+  margin-top: 0;
+}
+
+.today-panel {
+  margin-top: 18px;
+}
+
+.today-chip {
+  flex: 0 0 auto;
+}
+
+/* =========================================================
+   ATTENDANCE CHART
+========================================================= */
+
+.chart-panel {
+  position: relative;
+
+  min-height: 220px;
+  margin-top: 0;
+
+  container-type: inline-size;
+  container-name: chartPanel;
+}
+
+.chart-panel:hover,
+.chart-panel:focus-within {
+  z-index: 5;
+}
+
+@container chartPanel (max-width: 540px) {
+  .chart-x-month {
+    display: none;
+  }
+
+  .chart-tooltip {
+    max-width: 150px;
+  }
+}
+
+.chart-panel .panel-header {
+  flex-wrap: wrap;
+
+  gap: 8px 12px;
+}
+
+.chart-panel .panel-title {
+  flex: 1 1 220px;
+}
+
+.chart-open-hint {
+  margin: 6px 0 0;
+
+  color: #6d28d9;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  text-align: right;
+}
+
+.clickable-panel:hover .chart-open-hint {
+  text-decoration: underline;
+}
+
+.panel-total {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+.panel-total span {
+  display: block;
+
+  color: #64748b;
+
+  font-size: 10px;
+  font-weight: 800;
+
+  letter-spacing: 0.05em;
+}
+
+.attendance-totals {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: baseline;
+
+  gap: 2px 6px;
+
+  margin-top: 3px;
+
+  color: #1E1B33;
+
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.attendance-totals span {
+  display: inline;
+
+  color: inherit;
+
+  font-size: inherit;
+  font-weight: inherit;
+
+  letter-spacing: normal;
+
+  white-space: nowrap;
+}
+
+.attendance-totals i {
+  color: #94a3b8;
+
+  font-style: normal;
+}
+
+.chart-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+
+  gap: 14px;
+
+  margin: 0 0 2px 48px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 6px;
+
+  color: #475569;
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+
+  border-radius: 3px;
+}
+
+.legend-dot.present-dot {
+  background: linear-gradient(180deg, #38bdf8, #453D89);
+}
+
+.legend-dot.absent-dot {
+  background: linear-gradient(180deg, #f9a8d4, #C8499A);
+}
+
+.chart {
+  position: relative;
+
+  display: flex;
+  align-items: flex-end;
+
+  height: 230px;
+
+  padding:
+    15px
+    12px
+    4px
+    52px;
+
+  overflow: visible;
+}
+
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+
+  flex: 1;
+  min-width: 0;
+
+  height: 100%;
+}
+
+.chart-y {
+  position: absolute;
+
+  left: 0;
+  top: 12px;
+  bottom: 24px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  color: #64748b;
+
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.chart-grid {
+  position: absolute;
+
+  left: 52px;
+  right: 5px;
+  top: 15px;
+  bottom: 24px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  pointer-events: none;
+}
+
+.chart-grid span {
+  width: 100%;
+  height: 1px;
+
+  background: #f1f5f9;
+}
+
+.chart-item {
+  position: relative;
+  z-index: 2;
+
+  flex: 1;
+  min-width: 0;
+
+  height: 100%;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 6px;
+
+  border-radius: 8px;
+}
+
+.chart-item:focus-visible {
+  outline: 2px solid #453D89;
+
+  outline-offset: 2px;
+}
+
+.bar-area {
+  width: min(42px, 100%);
+  height: 170px;
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.bar-area.dual-bar {
+  gap: 5px;
+}
+
+.bar {
+  position: relative;
+
+  width: 27px;
+
+  min-height: 4px;
+
+  border-radius:
+    7px
+    7px
+    3px
+    3px;
+
+  background:
+    linear-gradient(
+      180deg,
+      #38bdf8,
+      #453D89
+    );
+
+  transition:
+    height 0.4s ease;
+}
+
+.dual-bar .bar {
+  width: 14px;
+  max-width: calc(50% - 4px);
+  min-height: 0;
+}
+
+.bar-present {
+  background:
+    linear-gradient(
+      180deg,
+      #38bdf8,
+      #453D89
+    );
+}
+
+.bar-absent {
+  background:
+    linear-gradient(
+      180deg,
+      #f9a8d4,
+      #C8499A
+    );
+}
+
+.bar-highlight {
+  position: absolute;
+
+  top: 0;
+  left: 4px;
+  right: 4px;
+
+  height: 2px;
+
+  border-radius: 99px;
+
+  background:
+    rgba(255,255,255,0.55);
+}
+
+.chart-item > span {
+  max-width: 100%;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  color: #64748b;
+
+  font-size: 10px;
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+.chart-x-month {
+  color: #94a3b8;
+
+  font-weight: 500;
+}
+
+.chart-tooltip {
+  position: absolute;
+
+  top: 0;
+  left: 50%;
+
+  transform: translateX(-50%);
+
+  z-index: 6;
+
+  max-width: 220px;
+
+  padding: 7px 10px;
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+
+  color: #f8fafc;
+
+  background: #0f172a;
+
+  box-shadow:
+    0 6px 16px
+    rgba(15, 23, 42, 0.35);
+
+  font-size: 11px;
+  font-weight: 600;
+
+  line-height: 1.45;
+
+  text-align: center;
+
+  pointer-events: none;
+
+  opacity: 0;
+
+  transition:
+    opacity 0.2s ease;
+}
+
+.chart-item:hover .chart-tooltip,
+.chart-item:focus-within .chart-tooltip {
+  opacity: 1;
+}
+
+/* Keep edge tooltips inside the card instead of
+   overflowing into neighbouring panels. */
+
+.chart-bars .chart-item:first-child .chart-tooltip {
+  left: 0;
+  transform: none;
+}
+
+.chart-bars .chart-item:last-child .chart-tooltip {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.chart-empty {
+  width: 100%;
+
+  align-self: center;
+
+  color: #64748b;
+
+  font-size: 12px;
+
+  text-align: center;
+}
+
+/* =========================================================
+   CLICKABLE CARDS + PANELS
+========================================================= */
+
+.clickable-card {
+  cursor: pointer;
+
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.clickable-card:hover {
+  transform: translateY(-2px);
+
+  border-color: #c9bce4;
+
+  box-shadow:
+    0 10px 26px
+    rgba(69, 61, 137, 0.1);
+}
+
+.clickable-card:focus-visible {
+  outline: 2px solid #453D89;
+
+  outline-offset: 2px;
+
+  box-shadow:
+    0 10px 26px
+    rgba(69, 61, 137, 0.12);
+}
+
+.clickable-panel {
+  cursor: pointer;
+
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.clickable-panel:hover {
+  transform: translateY(-2px);
+
+  border-color: #c9bce4;
+
+  box-shadow:
+    0 10px 26px
+    rgba(69, 61, 137, 0.1);
+}
+
+.clickable-panel:focus-visible {
+  outline: 2px solid #453D89;
+
+  outline-offset: 2px;
+
+  box-shadow:
+    0 10px 26px
+    rgba(69, 61, 137, 0.12);
 }
 
 .stack-list {
   display: grid;
   gap: 10px;
+
+  /* The panel header stays visible; only this list region scrolls
+     when a section's data outgrows the card height. */
+
+  max-height: 360px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.35) transparent;
+}
+
+.stack-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.stack-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.stack-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+
+  background: rgba(100, 116, 139, 0.35);
+}
+
+.stack-list.compact-list {
+  max-height: 300px;
 }
 
 .list-row {
@@ -1421,14 +2391,19 @@ export default {
 .list-row strong {
   display: block;
   color: #1e293b;
-  font-size: 10px;
+  font-size: 12px;
+  font-weight: 700;
+
+  overflow-wrap: anywhere;
 }
 
 .list-row small {
   display: block;
   margin-top: 3px;
-  color: #94a3b8;
-  font-size: 9px;
+  color: #64748b;
+  font-size: 10.5px;
+
+  overflow-wrap: anywhere;
 }
 
 .list-meta {
@@ -1448,8 +2423,44 @@ export default {
   background: #f3e8ff;
   color: #6d28d9;
 
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
+}
+
+.panel-header-actions {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+}
+
+.add-schedule-btn {
+  padding: 5px 11px;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+
+  background: #ffffff;
+  color: #453D89;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.add-schedule-btn:hover {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+}
+
+.add-schedule-btn:focus-visible {
+  outline: 2px solid #a5b4fc;
+  outline-offset: 2px;
 }
 
 .student-row {
@@ -1468,15 +2479,15 @@ export default {
   background: linear-gradient(120deg, #e0e7ff, #f5d0fe);
   color: #453D89;
 
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
 }
 
 .empty-state {
   padding: 20px 8px 0;
 
-  color: #94a3b8;
-  font-size: 10px;
+  color: #64748b;
+  font-size: 11px;
   line-height: 1.6;
 }
 
@@ -1535,7 +2546,7 @@ export default {
   }
 
   .detail-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1565,6 +2576,26 @@ export default {
     align-items: flex-start;
   }
 
+  .overview-row {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-header {
+    align-items: flex-start;
+  }
+
+  .panel-total {
+    text-align: left;
+  }
+
+  .attendance-totals {
+    justify-content: flex-start;
+  }
+
+  .chart-legend {
+    margin-left: 0;
+  }
+
   .profile-copy {
     width: 100%;
     min-width: 0;
@@ -1576,6 +2607,12 @@ export default {
   }
 
   .quick-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .detail-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -1609,15 +2646,46 @@ export default {
 
   .toolbar-panel,
   .profile-panel,
-  .detail-panel {
+  .detail-panel,
+  .today-panel,
+  .chart-panel {
     margin-top: 12px;
     padding: 14px;
+  }
+
+  .stack-list {
+    max-height: 280px;
+  }
+
+  .stack-list.compact-list {
+    max-height: 240px;
+  }
+
+  .instructor-filter-panel {
+    padding: 10px 12px;
+  }
+
+  .instructor-filter-panel .filter-field {
+    flex: 1 1 100%;
+    max-width: none;
   }
 
   .stats-grid,
   .toolbar-fields,
   .detail-grid {
     grid-template-columns: 1fr;
+  }
+
+  .bar-area.dual-bar {
+    gap: 3px;
+  }
+
+  .dual-bar .bar {
+    width: 10px;
+  }
+
+  .chart-x-month {
+    display: none;
   }
 
   .stat-card {

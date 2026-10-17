@@ -128,12 +128,113 @@
         </div>
 
         <!-- =================================================
+             DATE RANGE FILTERS (admin)
+        ================================================== -->
+        <section class="toolbar-panel admin-filter-panel">
+
+          <div class="toolbar-header">
+
+            <div>
+              <span class="eyebrow">
+                FILTERS
+              </span>
+
+              <h3>
+                Reporting period
+              </h3>
+            </div>
+
+            <span
+              v-if="hasCustomAdminRange"
+              class="filter-badge"
+            >
+              Filtered
+            </span>
+
+          </div>
+
+          <div class="toolbar-fields">
+
+            <label class="filter-field">
+              <span>Start date</span>
+
+              <input
+                v-model="adminFilters.startDate"
+                type="date"
+                :disabled="adminLoading"
+              />
+            </label>
+
+            <label class="filter-field">
+              <span>End date</span>
+
+              <input
+                v-model="adminFilters.endDate"
+                type="date"
+                :disabled="adminLoading"
+              />
+            </label>
+
+          </div>
+
+          <div class="toolbar-actions">
+
+            <button
+              type="button"
+              class="primary-btn"
+              :disabled="adminLoading"
+              @click="applyAdminFilter"
+            >
+              Apply Filter
+            </button>
+
+            <button
+              type="button"
+              class="secondary-btn"
+              :disabled="adminLoading"
+              @click="resetAdminFilters"
+            >
+              Reset
+            </button>
+
+            <span
+              v-if="adminLoading"
+              class="filter-status"
+              role="status"
+            >
+              Updating…
+            </span>
+
+          </div>
+
+          <p
+            v-if="filterError"
+            class="filter-error"
+            role="alert"
+          >
+            {{ filterError }}
+          </p>
+
+        </section>
+
+        <!-- =================================================
              SUMMARY CARDS
         ================================================== -->
-        <section class="stats-grid">
+        <section
+          class="stats-grid"
+          :class="{ 'is-updating': adminLoading }"
+        >
 
           <!-- Card 1 — Students -->
-          <article class="stat-card blue-card">
+          <article
+            class="stat-card blue-card clickable-card"
+            role="link"
+            tabindex="0"
+            aria-label="Open the student list"
+            @click="navigateToDesk('/desk/student')"
+            @keydown.enter.prevent="navigateToDesk('/desk/student')"
+            @keydown.space.prevent="navigateToDesk('/desk/student')"
+          >
 
             <div class="stat-card-top">
               <div class="stat-icon blue">
@@ -145,7 +246,7 @@
               </span>
             </div>
 
-            <div class="stat-body dual-metric">
+            <div class="stat-body tri-metric">
 
               <div>
                 <span>
@@ -159,11 +260,21 @@
 
               <div>
                 <span>
-                  Present Today
+                  Present
                 </span>
 
                 <strong>
-                  {{ adminStats.students.present_today }}
+                  {{ adminStats.students.present }}
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Absent
+                </span>
+
+                <strong>
+                  {{ adminStats.students.absent }}
                 </strong>
               </div>
 
@@ -172,8 +283,8 @@
             <div class="stat-footer">
               <span class="green-dot"></span>
 
-              Enabled student records ·
-              {{ adminStats.students.attendance_date || 'today' }}
+              Enabled students ·
+              attendance {{ adminRangeLabel || 'all time' }}
             </div>
 
             <div class="card-glow blue-glow"></div>
@@ -181,7 +292,15 @@
           </article>
 
           <!-- Card 2 — Teachers -->
-          <article class="stat-card green-card">
+          <article
+            class="stat-card green-card clickable-card"
+            role="link"
+            tabindex="0"
+            aria-label="Open the instructor list"
+            @click="navigateToDesk('/desk/instructor')"
+            @keydown.enter.prevent="navigateToDesk('/desk/instructor')"
+            @keydown.space.prevent="navigateToDesk('/desk/instructor')"
+          >
 
             <div class="stat-card-top">
               <div class="stat-icon green">
@@ -193,7 +312,7 @@
               </span>
             </div>
 
-            <div class="stat-body dual-metric">
+            <div class="stat-body tri-metric">
 
               <div>
                 <span>
@@ -207,30 +326,41 @@
 
               <div>
                 <span>
-                  Present Today
+                  Present
                 </span>
 
-                <strong
-                  v-if="adminStats.teachers.present_available"
-                >
-                  {{ adminStats.teachers.present_today }}
+                <strong>
+                  {{ adminStats.teachers.present }}
                 </strong>
+              </div>
 
-                <strong
-                  v-else
-                  class="na-value"
-                  :title="adminStats.teachers.note"
-                >
-                  Not configured
+              <div>
+                <span>
+                  Absent
+                </span>
+
+                <strong>
+                  {{ adminStats.teachers.absent }}
                 </strong>
               </div>
 
             </div>
 
-            <div class="stat-footer">
+            <div
+              class="stat-footer"
+              :title="adminStats.teachers.note"
+            >
               <span class="orange-dot"></span>
 
-              Active instructor records
+              <template v-if="adminStats.teachers.present_available">
+                Active instructors ·
+                {{ adminStats.teachers.linked_employees }}
+                linked to HR attendance
+              </template>
+
+              <template v-else>
+                {{ adminStats.teachers.note }}
+              </template>
             </div>
 
             <div class="card-glow green-glow"></div>
@@ -238,7 +368,15 @@
           </article>
 
           <!-- Card 3 — Fees -->
-          <article class="stat-card orange-card">
+          <article
+            class="stat-card orange-card clickable-card"
+            role="link"
+            tabindex="0"
+            aria-label="Open the sales invoice list"
+            @click="navigateToDesk('/desk/sales-invoice')"
+            @keydown.enter.prevent="navigateToDesk('/desk/sales-invoice')"
+            @keydown.space.prevent="navigateToDesk('/desk/sales-invoice')"
+          >
 
             <div class="stat-card-top">
               <div class="stat-icon orange">
@@ -299,7 +437,15 @@
           </article>
 
           <!-- Card 4 — Attendance -->
-          <article class="stat-card purple-card">
+          <article
+            class="stat-card purple-card clickable-card"
+            role="link"
+            tabindex="0"
+            aria-label="Open the student attendance list"
+            @click="navigateToDesk('/desk/student-attendance')"
+            @keydown.enter.prevent="navigateToDesk('/desk/student-attendance')"
+            @keydown.space.prevent="navigateToDesk('/desk/student-attendance')"
+          >
 
             <div class="stat-card-top">
               <div class="stat-icon purple">
@@ -331,7 +477,9 @@
               <template v-if="adminStats.attendance.available">
                 {{ adminStats.attendance.present_days }}
                 of {{ adminStats.attendance.recorded_days }}
-                student-days present
+                student-days present ·
+                {{ adminStats.attendance.absent_students }}
+                students absent
               </template>
 
               <template v-else>
@@ -348,7 +496,10 @@
         <!-- =================================================
              CHARTS + QUICK ACTIONS
         ================================================== -->
-        <section class="dashboard-layout">
+        <section
+          class="dashboard-layout"
+          :class="{ 'is-updating': adminLoading }"
+        >
 
           <div class="dashboard-main">
 
@@ -409,42 +560,46 @@
                   <span></span>
                 </div>
 
-                <div
-                  v-for="month in adminStats.charts.fees_collected"
-                  :key="month.month"
-                  class="chart-item"
-                >
+                <div class="chart-bars">
 
-                  <div class="chart-tooltip">
-                    {{ month.label }}
-                    · {{ formatCurrency(month.amount) }}
-                  </div>
+                  <div
+                    v-for="month in adminStats.charts.fees_collected"
+                    :key="month.month"
+                    class="chart-item"
+                  >
 
-                  <div class="bar-area">
-
-                    <div
-                      class="bar"
-                      :style="{
-                        height:
-                          `${getFeesBarHeight(month.amount)}%`
-                      }"
-                    >
-                      <div class="bar-highlight"></div>
+                    <div class="chart-tooltip">
+                      {{ month.label }}
+                      · {{ formatCurrency(month.amount) }}
                     </div>
 
+                    <div class="bar-area">
+
+                      <div
+                        class="bar"
+                        :style="{
+                          height:
+                            `${getFeesBarHeight(month.amount)}%`
+                        }"
+                      >
+                        <div class="bar-highlight"></div>
+                      </div>
+
+                    </div>
+
+                    <span>
+                      {{ month.short }}
+                    </span>
+
                   </div>
 
-                  <span>
-                    {{ month.short }}
-                  </span>
+                  <div
+                    v-if="!adminStats.charts.fees_collected.length"
+                    class="chart-empty"
+                  >
+                    No fee collection data available for this period.
+                  </div>
 
-                </div>
-
-                <div
-                  v-if="!adminStats.charts.fees_collected.length"
-                  class="chart-empty"
-                >
-                  No fee collection data available for this period.
                 </div>
 
               </div>
@@ -512,41 +667,45 @@
                   <span></span>
                 </div>
 
-                <div
-                  v-for="month in adminStats.charts.attendance"
-                  :key="month.month"
-                  class="chart-item"
-                >
+                <div class="chart-bars">
 
-                  <div class="chart-tooltip">
-                    {{ attendanceTooltip(month) }}
-                  </div>
+                  <div
+                    v-for="month in adminStats.charts.attendance"
+                    :key="month.month"
+                    class="chart-item"
+                  >
 
-                  <div class="bar-area">
-
-                    <div
-                      class="bar bar-pink"
-                      :style="{
-                        height:
-                          `${getAttendanceBarHeight(month.percentage)}%`
-                      }"
-                    >
-                      <div class="bar-highlight"></div>
+                    <div class="chart-tooltip">
+                      {{ attendanceTooltip(month) }}
                     </div>
 
+                    <div class="bar-area">
+
+                      <div
+                        class="bar bar-pink"
+                        :style="{
+                          height:
+                            `${getAttendanceBarHeight(month.percentage)}%`
+                        }"
+                      >
+                        <div class="bar-highlight"></div>
+                      </div>
+
+                    </div>
+
+                    <span>
+                      {{ month.short }}
+                    </span>
+
                   </div>
 
-                  <span>
-                    {{ month.short }}
-                  </span>
+                  <div
+                    v-if="!hasAttendanceChartData"
+                    class="chart-empty"
+                  >
+                    No submitted attendance records for this period.
+                  </div>
 
-                </div>
-
-                <div
-                  v-if="!hasAttendanceChartData"
-                  class="chart-empty"
-                >
-                  No submitted attendance records for this period.
                 </div>
 
               </div>
@@ -692,13 +851,21 @@ export default {
 
         students: {
           total: 0,
+          present: 0,
+          absent: 0,
+          present_records: 0,
+          absent_records: 0,
           present_today: 0,
           attendance_date: '',
         },
 
         teachers: {
           total: 0,
-          present_today: null,
+          present: 0,
+          absent: 0,
+          present_records: 0,
+          absent_records: 0,
+          linked_employees: 0,
           present_available: false,
           note: '',
         },
@@ -712,6 +879,8 @@ export default {
           percentage: null,
           present_days: 0,
           recorded_days: 0,
+          absent_records: 0,
+          absent_students: 0,
           available: false,
         },
 
@@ -720,6 +889,22 @@ export default {
           attendance: [],
         },
       },
+
+      adminFilters: {
+        startDate: '',
+        endDate: '',
+      },
+
+      adminAppliedRange: {
+        start: '',
+        end: '',
+      },
+
+      adminLoading: false,
+
+      adminRequestSeq: 0,
+
+      filterError: null,
 
       profileTabs: ['Personal', 'Contact', 'Academic'],
 
@@ -912,6 +1097,20 @@ export default {
       return `${period.label} · ${this.formatDate(period.from_date)} – ${this.formatDate(period.to_date)}`
     },
 
+    adminRangeLabel() {
+      const period = this.adminStats?.period
+
+      if (!period?.from_date || !period?.to_date) {
+        return ''
+      }
+
+      return `${this.formatDate(period.from_date)} – ${this.formatDate(period.to_date)}`
+    },
+
+    hasCustomAdminRange() {
+      return this.adminStats?.period?.source === 'custom'
+    },
+
     chartFeesMax() {
       const series = this.adminStats?.charts?.fees_collected || []
 
@@ -1061,13 +1260,7 @@ reportDashboardHeight() {
         }
 
         if (isStaffUser(this.context)) {
-          const adminResult = await this.fetchJson(
-            '/api/method/backend_custom_app.api.dashboard.get_admin_dashboard'
-          )
-
-          this.adminStats = this.normalizeAdminStats(
-            adminResult?.message
-          )
+          await this.loadAdminStats()
 
           this.dashboard = {
             ...this.dashboard,
@@ -1097,6 +1290,112 @@ reportDashboardHeight() {
       }
     },
 
+    async loadAdminStats() {
+      /*
+       * Each request takes a sequence number. Only the newest
+       * request may write into adminStats, so a slow, stale
+       * response can never overwrite a newer filter selection.
+       */
+      const requestId = ++this.adminRequestSeq
+
+      this.adminLoading = true
+      this.filterError = null
+
+      try {
+        const params = new URLSearchParams()
+
+        if (this.adminAppliedRange.start) {
+          params.set('start_date', this.adminAppliedRange.start)
+        }
+
+        if (this.adminAppliedRange.end) {
+          params.set('end_date', this.adminAppliedRange.end)
+        }
+
+        const query = params.toString()
+          ? `?${params.toString()}`
+          : ''
+
+        const adminResult = await this.fetchJson(
+          `/api/method/backend_custom_app.api.dashboard.get_admin_dashboard${query}`
+        )
+
+        if (requestId !== this.adminRequestSeq) {
+          return
+        }
+
+        this.adminStats = this.normalizeAdminStats(
+          adminResult?.message
+        )
+      } catch (error) {
+        if (requestId !== this.adminRequestSeq) {
+          return
+        }
+
+        console.error('Dashboard API error:', error)
+        this.error =
+          error?.message ||
+          'Unable to load dashboard data.'
+      } finally {
+        if (requestId === this.adminRequestSeq) {
+          this.adminLoading = false
+        }
+      }
+    },
+
+    applyAdminFilter() {
+      this.filterError = null
+
+      const start = String(this.adminFilters.startDate || '').trim()
+      const end = String(this.adminFilters.endDate || '').trim()
+
+      if (!start || !end) {
+        this.filterError = 'Select both a start date and an end date.'
+        return
+      }
+
+      const startParsed = new Date(start)
+      const endParsed = new Date(end)
+
+      if (
+        Number.isNaN(startParsed.getTime()) ||
+        Number.isNaN(endParsed.getTime())
+      ) {
+        this.filterError = 'Enter valid dates for both fields.'
+        return
+      }
+
+      // ISO yyyy-mm-dd strings compare correctly as strings.
+      if (start > end) {
+        this.filterError = 'Start date must be on or before the end date.'
+        return
+      }
+
+      this.adminAppliedRange = { start, end }
+      this.loadAdminStats()
+    },
+
+    resetAdminFilters() {
+      this.filterError = null
+      this.adminAppliedRange = { start: '', end: '' }
+      this.adminFilters = { startDate: '', endDate: '' }
+      this.loadAdminStats()
+    },
+
+    navigateToDesk(path) {
+      /*
+       * The dashboard runs inside the Desk iframe; navigate the
+       * top window so the whole desk changes page.
+       */
+      const target = window.top || window
+
+      try {
+        target.location.href = path
+      } catch (error) {
+        window.location.href = path
+      }
+    },
+
     normalizeAdminStats(message) {
       const data =
         message && typeof message === 'object'
@@ -1109,6 +1408,16 @@ reportDashboardHeight() {
         students: {
           total: Number(data.students?.total) || 0,
 
+          present: Number(data.students?.present) || 0,
+
+          absent: Number(data.students?.absent) || 0,
+
+          present_records:
+            Number(data.students?.present_records) || 0,
+
+          absent_records:
+            Number(data.students?.absent_records) || 0,
+
           present_today:
             Number(data.students?.present_today) || 0,
 
@@ -1119,8 +1428,18 @@ reportDashboardHeight() {
         teachers: {
           total: Number(data.teachers?.total) || 0,
 
-          present_today:
-            data.teachers?.present_today ?? null,
+          present: Number(data.teachers?.present) || 0,
+
+          absent: Number(data.teachers?.absent) || 0,
+
+          present_records:
+            Number(data.teachers?.present_records) || 0,
+
+          absent_records:
+            Number(data.teachers?.absent_records) || 0,
+
+          linked_employees:
+            Number(data.teachers?.linked_employees) || 0,
 
           present_available:
             !!data.teachers?.present_available,
@@ -1148,6 +1467,12 @@ reportDashboardHeight() {
 
           recorded_days:
             Number(data.attendance?.recorded_days) || 0,
+
+          absent_records:
+            Number(data.attendance?.absent_records) || 0,
+
+          absent_students:
+            Number(data.attendance?.absent_students) || 0,
 
           available:
             !!data.attendance?.available,
@@ -2050,7 +2375,7 @@ padding: 24px 32px;
 }
 
 .stat-tag{
-  padding: 4px 7px;
+  padding: 4px 8px;
 
   border-radius: 6px;
 
@@ -2058,10 +2383,10 @@ padding: 24px 32px;
 
   background: #F3EFF9;
 
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 800;
 
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
 .green-tag {
@@ -2089,9 +2414,11 @@ padding: 24px 32px;
 .stat-body span{
   display: block;
 
-  color: #64748b;
+  color: #475569;
 
-  font-size: 9px;
+  font-size: 11px;
+
+  line-height: 1.4;
 }
 
 .stat-body strong{
@@ -2101,10 +2428,12 @@ padding: 24px 32px;
 
   color: #1E1B33;
 
-  font-size: 25px;
+  font-size: 24px;
   font-weight: 800;
 
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
+
+  line-height: 1.15;
 }
 
 .stat-footer{
@@ -2118,9 +2447,11 @@ padding: 24px 32px;
 
   margin-top: 14px;
 
-  color: #94a3b8;
+  color: #64748b;
 
-  font-size: 8px;
+  font-size: 10.5px;
+
+  line-height: 1.5;
 }
 
 .green-dot,
@@ -2307,16 +2638,20 @@ padding: 24px 32px;
 
   color: #1e293b;
 
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 800;
+
+  line-height: 1.3;
 }
 
 .panel-title p{
   margin: 3px 0 0;
 
-  color: #94a3b8;
+  color: #64748b;
 
-  font-size: 8px;
+  font-size: 11px;
+
+  line-height: 1.4;
 }
 
 .view-link{
@@ -2569,10 +2904,12 @@ padding: 24px 32px;
 .panel-total span{
   display: block;
 
-  color: #94a3b8;
+  color: #64748b;
 
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 800;
+
+  letter-spacing: 0.05em;
 }
 
 .panel-total strong{
@@ -2582,7 +2919,21 @@ padding: 24px 32px;
 
   color: #1E1B33;
 
-  font-size: 14px;
+  font-size: 15px;
+}
+
+.chart-panel {
+  position: relative;
+
+  min-width: 0;
+
+  container-type: inline-size;
+  container-name: adminChart;
+}
+
+.chart-panel:hover,
+.chart-panel:focus-within {
+  z-index: 5;
 }
 
 .chart {
@@ -2591,15 +2942,25 @@ padding: 24px 32px;
   display: flex;
   align-items: flex-end;
 
-  height: 190px;
+  height: 230px;
 
   padding:
     15px
     12px
     4px
-    38px;
+    52px;
 
-  overflow: hidden;
+  overflow: visible;
+}
+
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+
+  flex: 1;
+  min-width: 0;
+
+  height: 100%;
 }
 
 .chart-y{
@@ -2607,24 +2968,25 @@ padding: 24px 32px;
 
   left: 0;
   top: 12px;
-  bottom: 22px;
+  bottom: 24px;
 
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 
-  color: #cbd5e1;
+  color: #64748b;
 
-  font-size: 6px;
+  font-size: 10px;
+  font-weight: 600;
 }
 
 .chart-grid {
   position: absolute;
 
-  left: 38px;
+  left: 52px;
   right: 5px;
   top: 15px;
-  bottom: 23px;
+  bottom: 24px;
 
   display: flex;
   flex-direction: column;
@@ -2645,6 +3007,7 @@ padding: 24px 32px;
   z-index: 2;
 
   flex: 1;
+  min-width: 0;
 
   height: 100%;
 
@@ -2657,8 +3020,8 @@ padding: 24px 32px;
 }
 
 .bar-area {
-  width: 42px;
-  height: 135px;
+  width: min(42px, 100%);
+  height: 170px;
 
   display: flex;
   align-items: flex-end;
@@ -2669,6 +3032,7 @@ padding: 24px 32px;
   position: relative;
 
   width: 27px;
+  max-width: 100%;
 
   min-height: 4px;
 
@@ -2705,25 +3069,52 @@ padding: 24px 32px;
 }
 
 .chart-item > span{
-  color: #94a3b8;
+  max-width: 100%;
 
-  font-size: 7px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  color: #64748b;
+
+  font-size: 10px;
+  font-weight: 600;
+
+  white-space: nowrap;
 }
 
 .chart-tooltip{
   position: absolute;
 
   top: 0;
+  left: 50%;
 
-  padding: 4px 5px;
+  transform: translateX(-50%);
 
-  border-radius: 5px;
+  z-index: 6;
 
-  color: #475569;
+  max-width: 200px;
 
-  background: #f8fafc;
+  padding: 7px 10px;
 
-  font-size: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+
+  color: #f8fafc;
+
+  background: #0f172a;
+
+  box-shadow:
+    0 6px 16px
+    rgba(15, 23, 42, 0.35);
+
+  font-size: 11px;
+  font-weight: 600;
+
+  line-height: 1.45;
+
+  text-align: center;
+
+  pointer-events: none;
 
   opacity: 0;
 
@@ -2731,7 +3122,38 @@ padding: 24px 32px;
     opacity 0.2s ease;
 }
 
-.chart-item:hover .chart-tooltip {
+/* Keep edge tooltips inside the card instead of
+   overflowing into neighbouring panels. */
+
+.chart-bars .chart-item:first-child .chart-tooltip {
+  left: 0;
+  transform: none;
+}
+
+.chart-bars .chart-item:last-child .chart-tooltip {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+@container adminChart (max-width: 520px) {
+  .chart-tooltip {
+    max-width: 150px;
+  }
+}
+
+@container adminChart (max-width: 380px) {
+  .chart-tooltip {
+    max-width: 120px;
+  }
+
+  .chart-item > span {
+    font-size: 9px;
+  }
+}
+
+.chart-item:hover .chart-tooltip,
+.chart-item:focus-within .chart-tooltip {
   opacity: 1;
 }
 
@@ -2740,9 +3162,9 @@ padding: 24px 32px;
 
   align-self: center;
 
-  color: #94a3b8;
+  color: #64748b;
 
-  font-size: 9px;
+  font-size: 12px;
 
   text-align: center;
 }
@@ -2943,6 +3365,258 @@ padding: 24px 32px;
   color: #453D89;
 
   font-size: 13px;
+}
+
+/* =========================================================
+   ADMIN DASHBOARD — CLICKABLE CARDS, FILTERS, TRI-METRICS
+========================================================= */
+
+.stat-body.tri-metric {
+  display: flex;
+
+  gap: 10px;
+}
+
+.stat-body.tri-metric > div {
+  flex: 1;
+
+  min-width: 0;
+}
+
+.stat-body.tri-metric strong {
+  font-size: 21px;
+}
+
+.clickable-card {
+  cursor: pointer;
+
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.clickable-card:hover {
+  transform: translateY(-2px);
+
+  border-color: #c9bce4;
+
+  box-shadow:
+    0 10px 26px
+    rgba(69, 61, 137, 0.1);
+}
+
+.clickable-card:focus-visible {
+  outline: 2px solid #453D89;
+
+  outline-offset: 2px;
+
+  box-shadow:
+    0 10px 26px
+    rgba(69, 61, 137, 0.12);
+}
+
+.is-updating {
+  opacity: 0.55;
+
+  pointer-events: none;
+
+  transition: opacity 0.2s ease;
+}
+
+/* Admin date-range filter toolbar */
+
+.admin-filter-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+
+  gap: 8px 16px;
+
+  margin-top: 12px;
+
+  padding: 10px 14px;
+
+  border: 1px solid #e2e8f0;
+
+  border-radius: 14px;
+
+  background: rgba(255, 255, 255, 0.9);
+
+  box-shadow: 0 4px 14px rgba(69, 61, 137, 0.035);
+}
+
+.admin-filter-panel .toolbar-header {
+  flex: 0 0 auto;
+
+  align-items: baseline;
+}
+
+.admin-filter-panel .toolbar-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: flex-end;
+
+  gap: 8px;
+
+  flex: 1 1 300px;
+
+  margin-top: 0;
+}
+
+.admin-filter-panel .filter-field {
+  flex: 0 1 148px;
+}
+
+.admin-filter-panel .toolbar-actions {
+  flex: 0 0 auto;
+
+  margin-top: 0;
+}
+
+.admin-filter-panel .filter-error {
+  flex: 1 0 100%;
+
+  margin: 0;
+}
+
+.toolbar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+}
+
+.toolbar-header h3 {
+  margin: 0;
+
+  color: #1e293b;
+
+  font-size: 13px;
+  font-weight: 800;
+
+  line-height: 1.2;
+}
+
+.eyebrow {
+  display: inline-block;
+  margin-bottom: 2px;
+
+  color: #7c3aed;
+
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.filter-badge {
+  padding: 3px 8px;
+
+  border-radius: 999px;
+
+  color: #6d28d9;
+  background: #f3e8ff;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.toolbar-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 148px));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  min-width: 0;
+}
+
+.filter-field span {
+  color: #475569;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.filter-field input {
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+
+  border: 1px solid #dfe7f1;
+  border-radius: 8px;
+
+  color: #1f2937;
+  background: #f8fafc;
+
+  font: inherit;
+  font-size: 12px;
+}
+
+.filter-field input:disabled {
+  opacity: 0.65;
+}
+
+.toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.primary-btn,
+.secondary-btn {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 8px;
+
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary-btn {
+  color: white;
+  background: linear-gradient(120deg, #453D89 0%, #C8499A 100%);
+}
+
+.secondary-btn {
+  color: #334155;
+  background: #eef2ff;
+}
+
+.primary-btn:disabled,
+.secondary-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.filter-status {
+  color: #64748b;
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.filter-error {
+  margin: 8px 0 0;
+
+  color: #b91c1c;
+
+  font-size: 11.5px;
+  font-weight: 600;
 }
 
 /* =========================================================
@@ -4541,6 +5215,38 @@ padding: 24px 32px;
     overflow-wrap: anywhere;
   }
 
+  .stat-body.tri-metric {
+    gap: 8px;
+  }
+
+  .stat-body.tri-metric strong {
+    font-size: 18px;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-filter-panel {
+    padding: 10px 12px;
+    margin-top: 10px;
+  }
+
+  .admin-filter-panel .toolbar-fields {
+    justify-content: flex-start;
+
+    flex: 1 1 100%;
+  }
+
+  .admin-filter-panel .filter-field {
+    flex: 1 1 120px;
+  }
+
+  .admin-filter-panel .toolbar-actions {
+    margin-top: 0;
+  }
+
+  .toolbar-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .stat-footer {
     align-items: flex-start;
     flex-wrap: wrap;
@@ -4556,6 +5262,35 @@ padding: 24px 32px;
   .panel,
   .quick-actions-panel {
     padding: 14px;
+  }
+
+  .chart {
+    height: 200px;
+
+    padding:
+      15px
+      8px
+      4px
+      40px;
+  }
+
+  .chart-y {
+    bottom: 22px;
+
+    font-size: 9px;
+  }
+
+  .chart-grid {
+    left: 40px;
+    bottom: 22px;
+  }
+
+  .bar-area {
+    height: 140px;
+  }
+
+  .bar {
+    max-width: 100%;
   }
 
   .panel-header {
@@ -4673,6 +5408,22 @@ padding: 24px 32px;
 
   .program-progress-wrap {
     width: 85px;
+  }
+
+  .admin-filter-panel {
+    padding: 10px;
+  }
+
+  .admin-filter-panel .toolbar-actions {
+    width: 100%;
+  }
+
+  .admin-filter-panel .toolbar-actions button {
+    min-height: 40px;
+  }
+
+  .toolbar-fields {
+    grid-template-columns: 1fr;
   }
 
 }
