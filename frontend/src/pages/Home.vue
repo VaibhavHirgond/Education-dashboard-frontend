@@ -264,7 +264,7 @@
                 </span>
 
                 <strong>
-                  {{ adminStats.students.present }}
+                  {{ adminStats.students.present_records }}
                 </strong>
               </div>
 
@@ -274,7 +274,7 @@
                 </span>
 
                 <strong>
-                  {{ adminStats.students.absent }}
+                  {{ adminStats.students.absent_records }}
                 </strong>
               </div>
 
@@ -284,7 +284,7 @@
               <span class="green-dot"></span>
 
               Enabled students ·
-              attendance {{ adminRangeLabel || 'all time' }}
+              attendance {{ adminRangeLabel || 'this month' }}
             </div>
 
             <div class="card-glow blue-glow"></div>
@@ -824,6 +824,25 @@ import Sidebar from '@/components/Sidebar.vue'
 import StudentDashboard from '@/pages/StudentDashboard.vue'
 import { getContext, isInstructorUser, isStaffUser, isStudentUser } from '@/lib/context'
 
+/*
+ * Default reporting window: the 1st of the current month through today.
+ *
+ * Matches the backend default of dashboard.get_admin_dashboard, so the
+ * date inputs always show the range the dashboard is actually using and
+ * Reset returns to that same window instead of clearing it.
+ */
+function defaultAdminRange() {
+  const today = new Date()
+  const start = new Date(today.getFullYear(), today.getMonth(), 1)
+
+  const toIso = date =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+      date.getDate()
+    ).padStart(2, '0')}`
+
+  return { start: toIso(start), end: toIso(today) }
+}
+
 export default {
   name: 'Home',
 
@@ -833,6 +852,8 @@ export default {
   },
 
   data() {
+    const adminRange = defaultAdminRange()
+
     return {
       loading: true,
 
@@ -891,8 +912,8 @@ export default {
       },
 
       adminFilters: {
-        startDate: '',
-        endDate: '',
+        startDate: adminRange.start,
+        endDate: adminRange.end,
       },
 
       adminAppliedRange: {
@@ -1376,9 +1397,14 @@ reportDashboardHeight() {
     },
 
     resetAdminFilters() {
+      const adminRange = defaultAdminRange()
+
       this.filterError = null
       this.adminAppliedRange = { start: '', end: '' }
-      this.adminFilters = { startDate: '', endDate: '' }
+      this.adminFilters = {
+        startDate: adminRange.start,
+        endDate: adminRange.end,
+      }
       this.loadAdminStats()
     },
 

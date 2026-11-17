@@ -145,7 +145,7 @@
               </div>
               <div class="stat-footer">
                 <span class="green-dot"></span>
-                Courses linked to your groups
+                Courses assigned to you
               </div>
               <div class="card-glow purple-glow"></div>
             </article>
@@ -291,7 +291,7 @@
                   <div class="panel-icon purple">▣</div>
                   <div>
                     <h3>My Courses</h3>
-                    <p>Courses attached to your student groups</p>
+                    <p>Courses assigned to you by the administrator</p>
                   </div>
                 </div>
               </div>
@@ -300,12 +300,12 @@
                 <div v-for="course in courses" :key="course.name || course.id || course.group" class="list-row">
                   <div>
                     <strong>{{ course.name }}</strong>
-                    <small>{{ course.group || 'Group not set' }}</small>
+                    <small>{{ course.group || course.program || 'Group not set' }}</small>
                   </div>
                   <span class="count-chip">{{ course.studentCount || 0 }}</span>
                 </div>
               </div>
-              <div v-else class="empty-state">No courses are assigned to your instructor groups.</div>
+              <div v-else class="empty-state">No courses have been assigned to you yet.</div>
             </article>
 
             <article
@@ -573,7 +573,12 @@ export default {
     },
 
     myCoursesCount() {
-      return this.courses.length
+      // The backend already returns every assigned course once, the set
+      // keeps the number shown on the profile and "My Courses" cards
+      // unique even if a duplicate ever slips through.
+      return new Set(
+        this.courses.map((course) => course.name).filter(Boolean)
+      ).size
     },
 
     myClassesCount() {
@@ -2464,7 +2469,23 @@ export default {
 }
 
 .student-row {
+  /*
+   * A mirrored 30px gutter on each side (the avatar on the left, an
+   * empty column on the right) puts the text column's centre exactly on
+   * the row's centre, so names are centred rather than pushed to the
+   * right edge by the list's space-between layout.
+   */
+  display: grid;
+  grid-template-columns: 30px 1fr 30px;
+  gap: 12px;
+
   align-items: center;
+}
+
+.student-row > div:last-child {
+  grid-column: 2;
+
+  text-align: center;
 }
 
 .student-pill {
@@ -2739,6 +2760,10 @@ export default {
   .list-row {
     align-items: flex-start;
     gap: 8px;
+  }
+
+  .student-row {
+    align-items: center;
   }
 
   .list-row > div:not(.student-pill) {
