@@ -506,7 +506,15 @@
             <!-- =============================================
                  CHART 1 — FEES COLLECTED
             ============================================== -->
-            <article class="panel chart-panel">
+            <article
+              class="panel chart-panel clickable-card"
+              role="link"
+              tabindex="0"
+              aria-label="Open the sales invoice list"
+              @click="navigateToDesk('/desk/sales-invoice')"
+              @keydown.enter.prevent="navigateToDesk('/desk/sales-invoice')"
+              @keydown.space.prevent="navigateToDesk('/desk/sales-invoice')"
+            >
 
               <div class="panel-header">
 
@@ -609,7 +617,15 @@
             <!-- =============================================
                  CHART 2 — ATTENDANCE
             ============================================== -->
-            <article class="panel chart-panel">
+            <article
+              class="panel chart-panel clickable-card"
+              role="link"
+              tabindex="0"
+              aria-label="Open the student attendance list"
+              @click="navigateToDesk(attendanceDeskUrl)"
+              @keydown.enter.prevent="navigateToDesk(attendanceDeskUrl)"
+              @keydown.space.prevent="navigateToDesk(attendanceDeskUrl)"
+            >
 
               <div class="panel-header">
 
@@ -625,7 +641,7 @@
                     </h3>
 
                     <p>
-                      Monthly student attendance percentage
+                      Monthly present vs absent students
                       · {{ adminPeriodLabel }}
                     </p>
                   </div>
@@ -644,8 +660,26 @@
                   <strong v-else>
                     —
                   </strong>
+
+                  <strong
+                    v-if="adminStats.attendance.available"
+                    class="attendance-totals"
+                  >
+                    <span>Present {{ attendanceTotals.present }}</span>
+                    <i aria-hidden="true">·</i>
+                    <span>Absent {{ attendanceTotals.absent }}</span>
+                  </strong>
                 </div>
 
+              </div>
+
+              <div class="chart-legend">
+                <span class="legend-item">
+                  <i class="legend-dot present-dot"></i>Present
+                </span>
+                <span class="legend-item">
+                  <i class="legend-dot absent-dot"></i>Absent
+                </span>
               </div>
 
               <div class="chart">
@@ -679,13 +713,23 @@
                       {{ attendanceTooltip(month) }}
                     </div>
 
-                    <div class="bar-area">
+                    <div class="bar-area dual-bar">
 
                       <div
-                        class="bar bar-pink"
+                        class="bar bar-present"
                         :style="{
                           height:
-                            `${getAttendanceBarHeight(month.percentage)}%`
+                            `${getPresentBarHeight(month.present_days)}%`
+                        }"
+                      >
+                        <div class="bar-highlight"></div>
+                      </div>
+
+                      <div
+                        class="bar bar-absent"
+                        :style="{
+                          height:
+                            `${getAbsentBarHeight(month.absent_days)}%`
                         }"
                       >
                         <div class="bar-highlight"></div>
@@ -899,6 +943,7 @@ export default {
         attendance: {
           percentage: null,
           present_days: 0,
+          absent_days: 0,
           recorded_days: 0,
           absent_records: 0,
           absent_students: 0,
@@ -1132,6 +1177,16 @@ export default {
       return this.adminStats?.period?.source === 'custom'
     },
 
+    attendanceDeskUrl() {
+      /*
+       * Desk list view behind the Attendance graph card: submitted
+       * (docstatus 1) attendance rows for the default admin group.
+       * Kept as a computed so the query string never has to be
+       * HTML-escaped inside the template attribute.
+       */
+      return '/desk/student-attendance?docstatus=1&student_group=2026-27+CSE+-+Programming+Fundamentals'
+    },
+
     chartFeesMax() {
       const series = this.adminStats?.charts?.fees_collected || []
 
@@ -1154,15 +1209,63 @@ export default {
       ]
     },
 
+    attendanceChartMax() {
+      const series = this.adminStats?.charts?.attendance || []
+
+      return series.reduce(
+        (max, month) =>
+          Math.max(
+            max,
+            Number(month.present_days) || 0,
+            Number(month.absent_days) || 0
+          ),
+        0
+      )
+    },
+
     attendanceChartAxis() {
-      return ['100%', '75%', '50%', '25%', '0']
+      const max = this.attendanceChartMax
+
+      return [
+        this.formatChartCount(max),
+        this.formatChartCount(max * 0.75),
+        this.formatChartCount(max * 0.5),
+        this.formatChartCount(max * 0.25),
+        '0',
+      ]
+    },
+
+    attendanceTotals() {
+      const attendance = this.adminStats?.attendance || {}
+
+      const present = Number(attendance.present_days) || 0
+      const absent = Number(attendance.absent_days) || 0
+
+      if (present || absent) {
+        return { present, absent }
+      }
+
+      const series = this.adminStats?.charts?.attendance || []
+
+      return series.reduce(
+        (totals, month) => {
+          totals.present += Number(month.present_days) || 0
+          totals.absent += Number(month.absent_days) || 0
+
+          return totals
+        },
+        { present: 0, absent: 0 }
+      )
     },
 
     hasAttendanceChartData() {
       const series = this.adminStats?.charts?.attendance || []
 
       return series.some(
-        month => Number(month.percentage) > 0
+        month =>
+          (Number(month.present_days) || 0) +
+            (Number(month.absent_days) || 0) >
+          0
       )
     },
 
@@ -1491,6 +1594,9 @@ reportDashboardHeight() {
           present_days:
             Number(data.attendance?.present_days) || 0,
 
+          absent_days:
+            Number(data.attendance?.absent_days) || 0,
+
           recorded_days:
             Number(data.attendance?.recorded_days) || 0,
 
@@ -1586,30 +1692,55 @@ reportDashboardHeight() {
       )
     },
 
-    getAttendanceBarHeight(percentage) {
-      const value = Number(percentage)
+    getPresentBarHeight(count) {
+      return this.getAttendanceBarHeight(count)
+    },
 
-      if (!Number.isFinite(value) || value <= 0) {
+    getAbsentBarHeight(count) {
+      return this.getAttendanceBarHeight(count)
+    },
+
+    getAttendanceBarHeight(count) {
+      const max = this.attendanceChartMax
+      const value = Number(count)
+
+      if (!max || !Number.isFinite(value) || value <= 0) {
         return 3
       }
 
       return Math.max(
-        Math.min(Math.round(value), 100),
+        Math.min(Math.round((value / max) * 100), 100),
         5
       )
     },
 
+    formatChartCount(value) {
+      const amount = Math.round(Number(value) || 0)
+
+      if (amount >= 100000) {
+        return `${(amount / 1000).toFixed(0)}K`
+      }
+
+      return String(amount)
+    },
+
     attendanceTooltip(month) {
-      if (
-        month.percentage === null ||
-        month.percentage === undefined
-      ) {
+      const present = Number(month.present_days) || 0
+      const absent = Number(month.absent_days) || 0
+
+      if (!present && !absent) {
         return `${month.label}: No records`
       }
 
+      const percentage =
+        month.percentage === null ||
+        month.percentage === undefined
+          ? null
+          : Number(month.percentage)
+
       return (
-        `${month.label}: ${month.percentage}% ` +
-        `(${month.present_days}/${month.recorded_days} student-days)`
+        `${month.label}: Present ${present} · Absent ${absent}` +
+        (percentage === null ? '' : ` · ${percentage}%`)
       )
     },
 
@@ -3193,6 +3324,108 @@ padding: 24px 32px;
   font-size: 12px;
 
   text-align: center;
+}
+
+/* ---- Attendance chart: Present / Absent series ---- */
+
+.panel-total .attendance-totals {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: baseline;
+
+  gap: 2px 6px;
+
+  margin-top: 3px;
+
+  color: #1E1B33;
+
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.panel-total .attendance-totals span {
+  display: inline;
+
+  color: inherit;
+
+  font-size: inherit;
+  font-weight: inherit;
+
+  letter-spacing: normal;
+
+  white-space: nowrap;
+}
+
+.panel-total .attendance-totals i {
+  color: #94a3b8;
+
+  font-style: normal;
+}
+
+.chart-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+
+  gap: 14px;
+
+  margin: 0 0 2px 48px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 6px;
+
+  color: #475569;
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+
+  border-radius: 3px;
+}
+
+.legend-dot.present-dot {
+  background: linear-gradient(180deg, #38bdf8, #453D89);
+}
+
+.legend-dot.absent-dot {
+  background: linear-gradient(180deg, #f9a8d4, #C8499A);
+}
+
+.bar-area.dual-bar {
+  gap: 5px;
+}
+
+.dual-bar .bar {
+  width: 14px;
+  max-width: calc(50% - 4px);
+  min-height: 0;
+}
+
+.bar-present {
+  background:
+    linear-gradient(
+      180deg,
+      #38bdf8,
+      #453D89
+    );
+}
+
+.bar-absent {
+  background:
+    linear-gradient(
+      180deg,
+      #f9a8d4,
+      #C8499A
+    );
 }
 
 
@@ -5323,6 +5556,18 @@ padding: 24px 32px;
     align-items: flex-start;
     flex-direction: column;
     gap: 10px;
+  }
+
+  .panel-total {
+    text-align: left;
+  }
+
+  .panel-total .attendance-totals {
+    justify-content: flex-start;
+  }
+
+  .chart-legend {
+    margin-left: 0;
   }
 
   .academic-summary-cards {
