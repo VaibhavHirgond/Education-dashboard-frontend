@@ -839,13 +839,6 @@
                       </template>
                     </span>
                   </div>
-
-                  <span
-                    class="student-chip"
-                    :class="holiday.status === 'tentative' ? 'chip-amber' : 'chip-green'"
-                  >
-                    {{ holiday.status === 'tentative' ? 'Tentative' : 'Confirmed' }}
-                  </span>
                 </li>
               </ul>
 

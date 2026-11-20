@@ -60,8 +60,8 @@
 
           <article class="summary-card">
             <span class="summary-label">Average Score</span>
-            <strong class="summary-value">{{ summary.averageScore }}</strong>
-            <span class="summary-hint">Across all results</span>
+            <strong class="summary-value">{{ summary.latestScore }}</strong>
+            <span class="summary-hint">Most recent result</span>
           </article>
 
           <article class="summary-card">
@@ -71,8 +71,8 @@
           </article>
 
           <article class="summary-card">
-            <span class="summary-label">Program</span>
-            <strong class="summary-value program-value">{{ payload.program || '—' }}</strong>
+            <span class="summary-label">Standard</span>
+            <strong class="summary-value program-value">{{ payload.standard || '—' }}</strong>
             <span class="summary-hint">
               {{ payload.academicYear || '' }}
             </span>
@@ -108,7 +108,7 @@
               <thead>
                 <tr>
                   <th>ASSESSMENT</th>
-                  <th>COURSE</th>
+                  <th>SUBJECT</th>
                   <th>CRITERIA BREAKDOWN</th>
                   <th>SCORE</th>
                   <th>MAX</th>
@@ -121,7 +121,7 @@
                   <td>
                     <strong>{{ row.assessment || row.id }}</strong>
                   </td>
-                  <td>{{ row.course || '—' }}</td>
+                  <td>{{ row.subject || row.course || '—' }}</td>
                   <td>
                     <span
                       v-for="detail in row.details"
@@ -166,12 +166,13 @@ export default {
       payload: {
         student: null,
         studentName: '',
+        standard: '',
         program: '',
         academicYear: '',
         results: [],
         summary: {
           total: 0,
-          averageScore: 0,
+          latestScore: 0,
           latestGrade: '',
         },
       },
@@ -184,7 +185,7 @@ export default {
     },
 
     summary() {
-      return this.payload.summary || { total: 0, averageScore: 0, latestGrade: '' }
+      return this.payload.summary || { total: 0, latestScore: 0, latestGrade: '' }
     },
   },
 
