@@ -89,17 +89,54 @@
                 Submitted assessment results from Frappe Education.
               </p>
             </div>
+
+            <div class="grade-actions">
+              <label class="assessment-select">
+                <span>Assessment</span>
+                <select v-model="selectedAssessment">
+                  <option value="">All Assessments</option>
+                  <option
+                    v-for="item in assessments"
+                    :key="item.value"
+                    :value="item.value"
+                  >
+                    {{ item.label }}
+                  </option>
+                </select>
+              </label>
+
+              <button
+                class="download-button"
+                :disabled="!selectedAssessment || downloading"
+                @click="downloadMarksCard"
+              >
+                <span v-if="downloading">Generating…</span>
+                <span v-else>Download Marks Card</span>
+              </button>
+            </div>
           </div>
+
+          <p v-if="!selectedAssessment" class="download-hint">
+            Select an assessment to download its marks card
+          </p>
+
+          <p v-if="downloadError" class="download-error">
+            {{ downloadError }}
+          </p>
 
           <div v-if="loading" class="loading-state">
             Loading grades…
           </div>
 
-          <div v-else-if="!results.length" class="empty-state">
-            <strong>No grades yet</strong>
-            <p>
+          <div v-else-if="!filteredResults.length" class="empty-state">
+            <strong v-if="!results.length">No grades yet</strong>
+            <strong v-else>No submitted results for this assessment</strong>
+            <p v-if="!results.length">
               Your assessment results will appear here once they
               are published.
+            </p>
+            <p v-else>
+              Choose another assessment from the filter above.
             </p>
           </div>
 
@@ -117,7 +154,7 @@
               </thead>
 
               <tbody>
-                <tr v-for="row in results" :key="row.id">
+                <tr v-for="row in filteredResults" :key="row.id">
                   <td>
                     <strong>{{ row.assessment || row.id }}</strong>
                   </td>
@@ -163,12 +200,16 @@ export default {
     return {
       loading: true,
       error: '',
+      selectedAssessment: '',
+      downloading: false,
+      downloadError: '',
       payload: {
         student: null,
         studentName: '',
         standard: '',
         program: '',
         academicYear: '',
+        assessments: [],
         results: [],
         summary: {
           total: 0,
@@ -182,6 +223,24 @@ export default {
   computed: {
     results() {
       return Array.isArray(this.payload.results) ? this.payload.results : []
+    },
+
+    assessments() {
+      return Array.isArray(this.payload.assessments) ? this.payload.assessments : []
+    },
+
+    filteredResults() {
+      var list = []
+
+      for (var i = 0; i < this.results.length; i++) {
+        var row = this.results[i]
+
+        if (!this.selectedAssessment || row.assessmentId === this.selectedAssessment) {
+          list.push(row)
+        }
+      }
+
+      return list
     },
 
     summary() {
@@ -203,9 +262,58 @@ export default {
       return 'grade-low'
     },
 
+    downloadMarksCard() {
+      if (!this.selectedAssessment || this.downloading) {
+        return
+      }
+
+      var self = this
+      self.downloading = true
+      self.downloadError = ''
+
+      var url = '/api/method/backend_custom_app.api.education.download_marks_card?assessment=' + encodeURIComponent(self.selectedAssessment)
+
+      fetch(url, {
+        credentials: 'include',
+        headers: { Accept: 'application/pdf' }
+      }).then(function(response) {
+        if (!response.ok) {
+          return response.text().then(function(text) {
+            var message = text || 'Unable to generate marks card.'
+            var detail = message.match(/"exception":"([^"]+)"/)
+            if (detail) {
+              message = detail[1]
+            }
+            throw new Error(message)
+          })
+        }
+
+        return response.blob().then(function(blob) {
+          var disposition = response.headers.get('Content-Disposition') || ''
+          var match = disposition.match(/filename="?([^";]+)"?/)
+          var filename = match ? match[1] : 'MarksCard.pdf'
+          var objectUrl = window.URL.createObjectURL(blob)
+          var link = document.createElement('a')
+
+          link.href = objectUrl
+          link.download = filename
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          window.URL.revokeObjectURL(objectUrl)
+        })
+      }).then(function() {
+        self.downloading = false
+      }).catch(function(err) {
+        self.downloading = false
+        self.downloadError = err.message || 'Unable to generate marks card.'
+      })
+    },
+
     async load() {
       this.loading = true
       this.error = ''
+      this.downloadError = ''
 
       try {
         const response = await fetch(
@@ -231,6 +339,17 @@ export default {
         }
 
         this.payload = { ...this.payload, ...(body.message || {}) }
+
+        var found = false
+        for (var i = 0; i < this.assessments.length; i++) {
+          if (this.assessments[i].value === this.selectedAssessment) {
+            found = true
+          }
+        }
+
+        if (this.selectedAssessment && !found) {
+          this.selectedAssessment = ''
+        }
       } catch (err) {
         console.error('Grades API error:', err)
         this.error = err.message || 'Unable to load grades.'
@@ -419,6 +538,59 @@ export default {
   border-bottom: 1px solid #eef2f7;
 }
 
+.grade-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.assessment-select {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.assessment-select select {
+  min-width: 240px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  color: #1E1B33;
+  font-size: 13px;
+}
+
+.download-button {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid #1E1B33;
+  background: #1E1B33;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.download-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.download-hint {
+  margin: 0 22px 16px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.download-error {
+  margin: 0 22px 16px;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .eyebrow {
   display: block;
   margin-bottom: 6px;
@@ -580,6 +752,25 @@ tr:last-child td {
 
   .page-header {
     flex-direction: column;
+  }
+
+  .panel-header {
+    flex-direction: column;
+  }
+
+  .grade-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .assessment-select select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .download-button {
+    width: 100%;
   }
 
   .summary-grid {
