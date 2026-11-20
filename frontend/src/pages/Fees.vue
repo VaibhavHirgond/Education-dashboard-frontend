@@ -217,13 +217,13 @@
                 <span
                   class="card-badge"
                   :class="
-                    summary.unpaid_invoices > 0
+                    summary.balance_due_invoices > 0
                       ? 'warning'
                       : 'positive'
                   "
                 >
                   {{
-                    summary.unpaid_invoices > 0
+                    summary.balance_due_invoices > 0
                       ? 'Pending'
                       : 'All Clear'
                   }}
@@ -231,18 +231,18 @@
               </div>
 
               <div class="card-label">
-                Unpaid Invoices
+                Balance Due
               </div>
 
               <div class="card-value">
-                {{ summary.unpaid_invoices }}
+                {{ summary.balance_due_invoices }}
               </div>
 
               <div class="card-description">
                 {{
-                  summary.unpaid_invoices > 0
-                    ? 'Invoices awaiting payment'
-                    : 'No unpaid invoices'
+                  summary.balance_due_invoices > 0
+                    ? 'Invoices awaiting full payment'
+                    : 'No outstanding invoices'
                 }}
               </div>
 
@@ -383,8 +383,8 @@
               <div class="overview-divider"></div>
 
               <div class="overview-stat">
-                <span>Unpaid</span>
-                <strong>{{ summary.unpaid_invoices }}</strong>
+                <span>Balance due</span>
+                <strong>{{ summary.balance_due_invoices }}</strong>
               </div>
 
               <div class="overview-divider"></div>
@@ -566,6 +566,10 @@
 
                   <option value="Unpaid">
                     Unpaid
+                  </option>
+
+                  <option value="Partially Paid">
+                    Partially Paid
                   </option>
                 </select>
 
@@ -781,11 +785,7 @@
 
                       <span
                         class="status-pill"
-                        :class="
-                          payment.status === 'Paid'
-                            ? 'status-paid'
-                            : 'status-unpaid'
-                        "
+                        :class="statusClass(payment.status)"
                       >
                         <span></span>
 
@@ -922,11 +922,7 @@
 
                   <span
                     class="status-pill"
-                    :class="
-                      payment.status === 'Paid'
-                        ? 'status-paid'
-                        : 'status-unpaid'
-                    "
+                    :class="statusClass(payment.status)"
                   >
                     <span></span>
 
@@ -1151,6 +1147,8 @@ export default {
         total_outstanding: 0,
         paid_invoices: 0,
         unpaid_invoices: 0,
+        partial_invoices: 0,
+        balance_due_invoices: 0,
       },
 
       context: null,
@@ -1229,6 +1227,18 @@ export default {
 
   methods: {
 
+    statusClass(status) {
+      if (status === 'Paid') {
+        return 'status-paid'
+      }
+
+      if (status === 'Partially Paid') {
+        return 'status-partial'
+      }
+
+      return 'status-unpaid'
+    },
+
     async loadContext() {
       try {
         this.context = await getContext()
@@ -1277,6 +1287,14 @@ export default {
 
             unpaid_invoices:
               result.message.unpaid_invoices || 0,
+
+            partial_invoices:
+              result.message.partial_invoices || 0,
+
+            balance_due_invoices:
+              result.message.balance_due_invoices ||
+              (result.message.unpaid_invoices || 0) +
+                (result.message.partial_invoices || 0),
           }
 
           this.payments =
@@ -3226,6 +3244,16 @@ export default {
 
 .status-unpaid > span {
   background: #f59e0b;
+}
+
+.status-partial {
+  color: #1d4ed8;
+
+  background: #eff6ff;
+}
+
+.status-partial > span {
+  background: #3b82f6;
 }
 
 .date-value{
