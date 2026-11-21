@@ -108,16 +108,16 @@
               <button
                 class="download-button"
                 :disabled="!selectedAssessment || downloading"
-                @click="downloadMarksCard"
+                @click="downloadResult"
               >
                 <span v-if="downloading">Generating…</span>
-                <span v-else>Download Marks Card</span>
+                <span v-else>Download Result</span>
               </button>
             </div>
           </div>
 
           <p v-if="!selectedAssessment" class="download-hint">
-            Select an assessment to download its marks card
+            Select an assessment to download its result
           </p>
 
           <p v-if="downloadError" class="download-error">
@@ -231,11 +231,49 @@ export default {
 
     filteredResults() {
       var list = []
+      var parents = {}
+      if (this.payload.assessmentGroupParents && typeof this.payload.assessmentGroupParents === 'object') {
+        parents = this.payload.assessmentGroupParents
+      }
+      var allResults = this.results
 
-      for (var i = 0; i < this.results.length; i++) {
-        var row = this.results[i]
+      if (!this.selectedAssessment) {
+        return allResults
+      }
 
-        if (!this.selectedAssessment || row.assessmentId === this.selectedAssessment) {
+      var allowed = {}
+      allowed[this.selectedAssessment] = true
+      var changed = true
+      var guard = 0
+      while (changed && guard < 200) {
+        changed = false
+        guard++
+        for (var key in allowed) {
+          if (!allowed[key]) {
+            continue
+          }
+          var p = parents[key]
+          if (p && p !== 'All Assessment Groups' && !allowed[p]) {
+            allowed[p] = true
+            changed = true
+          }
+        }
+        for (var i = 0; i < allResults.length; i++) {
+          var g = allResults[i].assessmentGroup || ''
+          if (g && allowed[g]) {
+            var gp = parents[g]
+            if (gp && gp !== 'All Assessment Groups' && !allowed[gp]) {
+              allowed[gp] = true
+              changed = true
+            }
+          }
+        }
+      }
+
+      for (var i = 0; i < allResults.length; i++) {
+        var row = allResults[i]
+        var gname = row.assessmentGroup || ''
+        if (allowed[gname]) {
           list.push(row)
         }
       }
@@ -262,7 +300,7 @@ export default {
       return 'grade-low'
     },
 
-    downloadMarksCard() {
+    downloadResult() {
       if (!this.selectedAssessment || this.downloading) {
         return
       }
@@ -271,7 +309,7 @@ export default {
       self.downloading = true
       self.downloadError = ''
 
-      var url = '/api/method/backend_custom_app.api.education.download_marks_card?assessment=' + encodeURIComponent(self.selectedAssessment)
+      var url = '/api/method/backend_custom_app.api.education.download_result?assessment_group=' + encodeURIComponent(self.selectedAssessment)
 
       fetch(url, {
         credentials: 'include',
@@ -279,7 +317,7 @@ export default {
       }).then(function(response) {
         if (!response.ok) {
           return response.text().then(function(text) {
-            var message = text || 'Unable to generate marks card.'
+            var message = text || 'Unable to generate result.'
             var detail = message.match(/"exception":"([^"]+)"/)
             if (detail) {
               message = detail[1]
@@ -291,7 +329,7 @@ export default {
         return response.blob().then(function(blob) {
           var disposition = response.headers.get('Content-Disposition') || ''
           var match = disposition.match(/filename="?([^";]+)"?/)
-          var filename = match ? match[1] : 'MarksCard.pdf'
+          var filename = match ? match[1] : 'Result.pdf'
           var objectUrl = window.URL.createObjectURL(blob)
           var link = document.createElement('a')
 
@@ -306,7 +344,7 @@ export default {
         self.downloading = false
       }).catch(function(err) {
         self.downloading = false
-        self.downloadError = err.message || 'Unable to generate marks card.'
+        self.downloadError = err.message || 'Unable to generate result.'
       })
     },
 
