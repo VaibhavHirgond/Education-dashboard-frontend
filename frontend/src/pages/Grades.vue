@@ -91,19 +91,77 @@
             </div>
 
             <div class="grade-actions">
-              <label class="assessment-select">
-                <span>Assessment</span>
-                <select v-model="selectedAssessment">
-                  <option value="">All Assessments</option>
-                  <option
-                    v-for="item in assessments"
-                    :key="item.value"
-                    :value="item.value"
+              <div class="assessment-dd-wrap">
+                <span class="assessment-dd-label">Assessment</span>
+                <div class="assessment-dd" v-bind:class="{ 'is-open': assessmentMenuOpen }">
+                  <button
+                    type="button"
+                    class="assessment-dd-btn"
+                    v-bind:aria-expanded="assessmentMenuOpen ? 'true' : 'false'"
+                    v-on:click="toggleAssessmentMenu"
+                    v-on:keydown.esc="closeAssessmentMenu"
                   >
-                    {{ item.label }}
-                  </option>
-                </select>
-              </label>
+                    <span class="assessment-dd-left">
+                      <span class="assessment-dd-badge" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M12 20h9"></path>
+                          <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                        </svg>
+                      </span>
+                      <span class="assessment-dd-text">{{ selectedAssessmentLabel }}</span>
+                    </span>
+                    <svg
+                      class="assessment-dd-arrow"
+                      v-bind:class="{ 'is-rotated': assessmentMenuOpen }"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </button>
+                  <div
+                    class="assessment-dd-menu"
+                    v-show="assessmentMenuOpen"
+                    role="listbox"
+                  >
+                    <button
+                      type="button"
+                      class="assessment-dd-item"
+                      v-bind:class="{ 'is-selected': selectedAssessment === '' }"
+                      v-on:click="selectAssessment('')"
+                    >
+                      <span class="assessment-dd-item-dot" aria-hidden="true"></span>
+                      <span class="assessment-dd-item-text">All Assessments</span>
+                      <span class="assessment-dd-check" v-if="selectedAssessment === ''" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      class="assessment-dd-item"
+                      v-for="item in assessments"
+                      v-bind:key="item.value"
+                      v-bind:class="{ 'is-selected': selectedAssessment === item.value }"
+                      v-on:click="selectAssessment(item.value)"
+                    >
+                      <span class="assessment-dd-item-dot" aria-hidden="true"></span>
+                      <span class="assessment-dd-item-text">{{ item.label }}</span>
+                      <span class="assessment-dd-check" v-if="selectedAssessment === item.value" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
 
               <button
                 class="download-button"
@@ -201,6 +259,7 @@ export default {
       loading: true,
       error: '',
       selectedAssessment: '',
+      assessmentMenuOpen: false,
       downloading: false,
       downloadError: '',
       payload: {
@@ -227,6 +286,18 @@ export default {
 
     assessments() {
       return Array.isArray(this.payload.assessments) ? this.payload.assessments : []
+    },
+
+    selectedAssessmentLabel() {
+      if (!this.selectedAssessment) {
+        return 'All Assessments'
+      }
+      for (var i = 0; i < this.assessments.length; i++) {
+        if (this.assessments[i].value === this.selectedAssessment) {
+          return this.assessments[i].label
+        }
+      }
+      return 'All Assessments'
     },
 
     filteredResults() {
@@ -287,10 +358,40 @@ export default {
   },
 
   mounted() {
+    document.addEventListener('click', this.onDocumentClick)
+    document.addEventListener('keydown', this.onDocumentKeydown)
     this.load()
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.onDocumentClick)
+    document.removeEventListener('keydown', this.onDocumentKeydown)
   },
 
   methods: {
+    onDocumentClick(e) {
+      var root = this.$el
+      if (!root) {
+        return
+      }
+      if (!root.contains(e.target)) {
+        this.assessmentMenuOpen = false
+      }
+    },
+    onDocumentKeydown(e) {
+      if (e.key === 'Escape') {
+        this.assessmentMenuOpen = false
+      }
+    },
+    toggleAssessmentMenu() {
+      this.assessmentMenuOpen = !this.assessmentMenuOpen
+    },
+    closeAssessmentMenu() {
+      this.assessmentMenuOpen = false
+    },
+    selectAssessment(val) {
+      this.selectedAssessment = val
+      this.assessmentMenuOpen = false
+    },
     gradeClass(grade) {
       const value = String(grade || '').trim().toUpperCase()
 
@@ -583,22 +684,150 @@ export default {
   flex-wrap: wrap;
 }
 
-.assessment-select {
+.assessment-dd-wrap {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  position: relative;
+}
+
+.assessment-dd-label {
   font-size: 13px;
   color: #475569;
 }
 
-.assessment-select select {
-  min-width: 240px;
+.assessment-dd {
+  position: relative;
+  min-width: 280px;
+}
+
+.assessment-dd-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   padding: 10px 12px;
   border: 1px solid #cbd5e1;
   border-radius: 10px;
   background: #fff;
   color: #1E1B33;
   font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.assessment-dd-btn:focus {
+  outline: 2px solid #453D89;
+  outline-offset: 2px;
+}
+
+.assessment-dd-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.assessment-dd-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #F1EEFA;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.assessment-dd-badge svg {
+  width: 18px;
+  height: 18px;
+}
+
+.assessment-dd-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assessment-dd-arrow {
+  width: 18px;
+  height: 18px;
+  color: #64748b;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.assessment-dd-arrow.is-rotated {
+  transform: rotate(180deg);
+}
+
+.assessment-dd-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(30, 27, 51, 0.12);
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.assessment-dd-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  color: #1E1B33;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.assessment-dd-item:hover {
+  background: #f3f0ff;
+}
+
+.assessment-dd-item.is-selected {
+  background: #ede9fe;
+  font-weight: 600;
+}
+
+.assessment-dd-item-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #453D89;
+  flex-shrink: 0;
+}
+
+.assessment-dd-item-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assessment-dd-check {
+  width: 18px;
+  height: 18px;
+  color: #453D89;
+  flex-shrink: 0;
+}
+
+.assessment-dd-check svg {
+  width: 18px;
+  height: 18px;
 }
 
 .download-button {
@@ -609,6 +838,7 @@ export default {
   color: #fff;
   font-weight: 700;
   cursor: pointer;
+  align-self: flex-end;
 }
 
 .download-button:disabled {
@@ -802,13 +1032,14 @@ tr:last-child td {
     align-items: stretch;
   }
 
-  .assessment-select select {
+  .assessment-dd {
     width: 100%;
     min-width: 0;
   }
 
   .download-button {
     width: 100%;
+    align-self: stretch;
   }
 
   .summary-grid {
