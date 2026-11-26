@@ -32,6 +32,12 @@
               >
                 {{ unreadNotifications > 99 ? '99+' : unreadNotifications }}
               </span>
+              <span
+                v-if="item.to === '/messages' && unreadMessages"
+                class="nav-badge"
+              >
+                {{ unreadMessages > 99 ? '99+' : unreadMessages }}
+              </span>
             </router-link>
           </template>
         </nav>
@@ -124,6 +130,12 @@
               >
                 {{ unreadNotifications > 99 ? '99+' : unreadNotifications }}
               </span>
+              <span
+                v-if="item.to === '/messages' && unreadMessages"
+                class="nav-badge"
+              >
+                {{ unreadMessages > 99 ? '99+' : unreadMessages }}
+              </span>
             </router-link>
           </template>
         </nav>
@@ -151,7 +163,7 @@ import { clearContext, getContext, portalMode } from '@/lib/context'
 import { clearCsrfToken } from '@/lib/csrf'
 import { apiGet } from '@/lib/api'
 
-const STAFF_NAV = [
+var STAFF_NAV = [
   {
     label: 'MAIN MENU',
     items: [
@@ -172,6 +184,7 @@ const STAFF_NAV = [
       { to: '/fees', icon: '₹', text: 'Fees & Payments' },
       { to: '/attendance', icon: '✓', text: 'Attendance' },
       { to: '/notifications', icon: '◉', text: 'Notifications' },
+      { to: '/messages', icon: '✉', text: 'Messages' },
       { to: '/courses', icon: '▣', text: 'Courses' },
       { to: '/timetable', icon: '◷', text: 'Timetable' },
       { to: '/assessments', icon: '◆', text: 'Assessments' },
@@ -181,7 +194,7 @@ const STAFF_NAV = [
   },
 ]
 
-const STUDENT_NAV = [
+var STUDENT_NAV = [
   {
     label: 'MAIN MENU',
     items: [
@@ -191,11 +204,12 @@ const STUDENT_NAV = [
       { to: '/fees', icon: '₹', text: 'Fees' },
       { to: '/attendance', icon: '✓', text: 'Attendance' },
       { to: '/student-notifications', icon: '◉', text: 'Notifications' },
+      { to: '/messages', icon: '✉', text: 'Messages' },
     ],
   },
 ]
 
-const INSTRUCTOR_NAV = [
+var INSTRUCTOR_NAV = [
   {
     label: 'MAIN MENU',
     items: [
@@ -203,6 +217,7 @@ const INSTRUCTOR_NAV = [
       { to: '/students', icon: '♙', text: 'My Students' },
       { to: '/timetable', icon: '◷', text: 'Timetable' },
       { to: '/attendance', icon: '✓', text: 'Attendance' },
+      { to: '/messages', icon: '✉', text: 'Messages' },
     ],
   },
 ]
@@ -215,10 +230,8 @@ export default {
       mobileMenuOpen: false,
       loggingOut: false,
       unreadNotifications: 0,
-      // Unknown until get_context() answers: an empty mode renders no
-      // navigation instead of guessing "staff" and exposing links the
-      // server would reject for learners and instructors.
       mode: '',
+      unreadMessages: 0,
     }
   },
 
@@ -240,31 +253,60 @@ export default {
     },
   },
 
-  async mounted() {
-    try {
-      const ctx = await getContext()
-      this.mode = portalMode(ctx) || ''
-      if (this.mode === 'student') {
-        await this.loadUnreadNotifications()
-        window.addEventListener('student-notifications-updated', this.loadUnreadNotifications)
+  mounted() {
+    var self = this
+    getContext().then(function(ctx) {
+      self.mode = portalMode(ctx) || ''
+      if (self.mode === 'student') {
+        self.loadUnreadNotifications()
+        self.loadUnreadMessages()
+        window.addEventListener('student-notifications-updated', self.loadUnreadNotifications)
+        window.addEventListener('messages-updated', self.loadUnreadMessages)
       }
-    } catch (error) {
+      if (self.mode === 'staff' || self.mode === 'instructor') {
+        self.loadUnreadMessages()
+        window.addEventListener('messages-updated', self.loadUnreadMessages)
+      }
+    }).catch(function(error) {
       console.warn('Sidebar context error:', error)
-      this.mode = ''
-    }
+      self.mode = ''
+    })
   },
 
   methods: {
-    async loadUnreadNotifications() {
-      try {
-        const result = await apiGet(
-          '/api/method/backend_custom_app.api.student_notifications.get_student_notifications',
-          { limit: 1 }
-        )
-        this.unreadNotifications = Number(result?.unread_count) || 0
-      } catch (error) {
-        this.unreadNotifications = 0
-      }
+    loadUnreadNotifications() {
+      var self = this
+      return apiGet(
+        '/api/method/backend_custom_app.api.student_notifications.get_student_notifications',
+        { limit: 1 }
+      ).then(function(result) {
+        var count = 0
+        if (result && result.unread_count) {
+          count = Number(result.unread_count)
+        }
+        if (!count && result && result.message && result.message.unread_count) {
+          count = Number(result.message.unread_count)
+        }
+        self.unreadNotifications = count || 0
+      }).catch(function(error) {
+        self.unreadNotifications = 0
+      })
+    },
+
+    loadUnreadMessages() {
+      var self = this
+      return apiGet('/api/method/backend_custom_app.api.messages.get_unread_counts').then(function(result) {
+        var count = 0
+        if (result && result.unread_count) {
+          count = Number(result.unread_count)
+        }
+        if (!count && result && result.message && result.message.unread_count) {
+          count = Number(result.message.unread_count)
+        }
+        self.unreadMessages = count || 0
+      }).catch(function(error) {
+        self.unreadMessages = 0
+      })
     },
 
     openMobileMenu() {
@@ -277,52 +319,39 @@ export default {
       document.body.classList.remove('sidebar-mobile-open')
     },
 
-    async logout() {
+    logout() {
       if (this.loggingOut) return
 
       this.loggingOut = true
       this.closeMobileMenu()
 
-      try {
-        const response = await fetch('/api/method/logout', {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        })
-
+      return fetch('/api/method/logout', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }).then(function(response) {
         if (!response.ok) {
-          throw new Error(`Logout failed with status ${response.status}`)
+          throw new Error('Logout failed with status ' + response.status)
         }
-
-        try {
-          sessionStorage.clear()
-          localStorage.clear()
-        } catch (error) {
-          console.warn('Unable to clear browser storage on logout:', error)
-        }
-
-        // Drop the cached role and CSRF token so the next sign-in (in
-        // this same SPA session) starts from a clean slate, then send the
-        // user to Frappe's real login page. The Vue Login route is
-        // commented out, so changing the hash here would only bounce
-        // through the catch-all redirect first. `window.top` because the
-        // app is normally embedded in the Desk iframe.
+        sessionStorage.clear()
+        localStorage.clear()
         clearContext()
         clearCsrfToken()
         window.top.location.href = '/login'
-      } catch (error) {
+      }).catch(function(error) {
         console.error('Logout failed:', error)
         this.loggingOut = false
         window.alert('Unable to logout. Please try again.')
-      }
+      }.bind(this))
     },
   },
 
   beforeUnmount() {
     document.body.classList.remove('sidebar-mobile-open')
     window.removeEventListener('student-notifications-updated', this.loadUnreadNotifications)
+    window.removeEventListener('messages-updated', this.loadUnreadMessages)
   },
 }
 </script>

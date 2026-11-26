@@ -4,12 +4,13 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "vite",
-    "build": "vite build --base=/assets/frontend_custom_app/frontend/",
+    "build": "vite build --base=/assets/frontend_custom_app/frontend/ && node sync-student-portal.js",
     "preview": "vite preview"
   },
   "dependencies": {
     "feather-icons": "^4.28.0",
     "frappe-ui": "^0.0.105",
+    "socket.io-client": "^4.6.1",
     "vue": "^3.2.25",
     "vue-router": "^4.0.12"
   },

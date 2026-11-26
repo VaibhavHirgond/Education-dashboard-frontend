@@ -28,6 +28,11 @@ function fetchImpl() {
 }
 
 export async function getCsrfToken({ force = false } = {}) {
+  if (!force && window.csrf_token && window.csrf_token !== '{{ csrf_token }}') {
+    token = window.csrf_token
+    return token
+  }
+
   if (token && !force) {
     return token
   }
@@ -45,6 +50,9 @@ export async function getCsrfToken({ force = false } = {}) {
       const body = await response.json().catch(() => ({}))
       const value = (body && (body.message || body.csrf_token)) || null
       token = typeof value === 'string' && value ? value : null
+      if (token) {
+        window.csrf_token = token
+      }
       return token
     })
     .catch(() => null)

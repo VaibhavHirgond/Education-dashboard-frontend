@@ -81,6 +81,16 @@ const routes = [
   },
 
   {
+    path: '/messages',
+    name: 'Messages',
+    component: () => import('@/pages/Messages.vue'),
+    meta: {
+      requiresAuth: true,
+      allowed: ['staff', 'instructor', 'student'],
+    },
+  },
+
+  {
     path: '/student-notifications',
     name: 'StudentNotifications',
     component: () => import('@/pages/StudentNotifications.vue'),

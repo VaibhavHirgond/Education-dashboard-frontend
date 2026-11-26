@@ -104,6 +104,43 @@ export async function apiPost(path, payload = {}) {
   return body?.message
 }
 
+export function apiUpload(path, formData, onProgress) {
+  return getCsrfToken().then(function(csrfToken) {
+    return new Promise(function(resolve, reject) {
+      var xhr = new XMLHttpRequest()
+      xhr.open('POST', path, true)
+      xhr.withCredentials = true
+      xhr.responseType = 'json'
+      xhr.setRequestHeader('Accept', 'application/json')
+      if (csrfToken) {
+        xhr.setRequestHeader('X-Frappe-CSRF-Token', csrfToken)
+      }
+      if (xhr.upload && typeof onProgress === 'function') {
+        xhr.upload.onprogress = function(progressEvent) {
+          if (progressEvent.lengthComputable) {
+            onProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total))
+          }
+        }
+      }
+      xhr.onload = function() {
+        var body = xhr.response || {}
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(body.message)
+          return
+        }
+        var error = new Error(body.exception || body.message || 'Upload failed with status ' + xhr.status)
+        error.status = xhr.status
+        error.body = body
+        reject(error)
+      }
+      xhr.onerror = function() {
+        reject(new Error('Upload failed. Check your connection and try again.'))
+      }
+      xhr.send(formData)
+    })
+  })
+}
+
 export function extractMessage(body) {
   if (!body) {
     return ''
