@@ -1,5 +1,5 @@
 <template>
-  <div class="viewer-overlay">
+  <div class="viewer-overlay" role="dialog" aria-modal="true" aria-label="Image viewer">
     <button type="button" class="viewer-backdrop" aria-label="Close image viewer" v-on:click="$emit('close')"></button>
     <div class="viewer-panel">
       <div class="viewer-head">

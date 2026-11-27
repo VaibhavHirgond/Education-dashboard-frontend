@@ -2,29 +2,42 @@
   <div class="message-rich">
     <div v-if="message.message_type === 'sticker'" class="sticker-wrap">
       <span class="sticker-emoji">{{ message.message_text }}</span>
+      <ChatLinkCard v-if="firstLink(message.message_text)" v-bind:url="firstLink(message.message_text)" />
     </div>
 
     <div v-else-if="message.message_type === 'image' && message.attachment" class="media-wrap">
-      <button type="button" class="image-button" v-bind:aria-label="'View image ' + message.attachment.file_name" v-on:click="viewImage">
-        <img class="message-image" loading="lazy" v-bind:src="message.attachment.preview_url" v-bind:alt="message.attachment.file_name" />
-      </button>
+      <div class="media-card">
+        <button type="button" class="image-button" v-bind:aria-label="'View image ' + message.attachment.file_name" v-on:click="viewImage">
+          <img class="message-image" loading="lazy" v-bind:src="message.attachment.preview_url" v-bind:alt="message.attachment.file_name" />
+        </button>
+        <span v-if="time" class="media-time">{{ time }}</span>
+      </div>
       <div class="rich-caption" v-if="message.message_text">
         <template v-for="(part, index) in linkParts(message.message_text)" v-bind:key="index">
           <a v-if="part.kind === 'link'" v-bind:href="part.href" target="_blank" rel="noopener noreferrer">{{ part.value }}</a>
           <span v-else>{{ part.value }}</span>
         </template>
+        <ChatLinkCard v-if="firstLink(message.message_text)" v-bind:url="firstLink(message.message_text)" />
       </div>
     </div>
 
     <div v-else-if="message.message_type === 'video' && message.attachment" class="media-wrap">
-      <video class="message-video" controls playsinline preload="metadata" v-bind:src="message.attachment.preview_url"></video>
+      <div class="media-card">
+        <video ref="videoEl" class="message-video" controls playsinline preload="none" v-bind:src="message.attachment.preview_url"></video>
+        <button type="button" class="video-play" aria-label="Play video" title="Play video" v-on:click="playVideo">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M9 7l9 5-9 5z" fill="currentColor"/></svg>
+        </button>
+        <span v-if="time" class="media-time">{{ time }}</span>
+      </div>
       <div class="file-name-line">{{ message.attachment.file_name }}</div>
       <div class="rich-caption" v-if="message.message_text">{{ message.message_text }}</div>
     </div>
 
     <div v-else-if="message.message_type === 'audio' && message.attachment" class="media-wrap">
-      <div class="audio-label">{{ message.is_voice_note ? 'Voice message' : 'Audio' }}</div>
-      <audio class="message-audio" controls preload="metadata" v-bind:src="message.attachment.preview_url"></audio>
+      <div class="audio-card">
+        <div class="audio-label">{{ message.is_voice_note ? 'Voice message' : 'Audio' }}</div>
+        <audio class="message-audio" controls preload="none" v-bind:src="message.attachment.preview_url"></audio>
+      </div>
       <div class="rich-caption" v-if="message.message_text">{{ message.message_text }}</div>
     </div>
 
@@ -35,9 +48,15 @@
           <span class="file-card-name">{{ message.attachment.file_name }}</span>
           <span class="file-card-size">{{ sizeLabel(message.attachment.file_size) }}</span>
         </span>
-        <a class="file-download" v-bind:href="message.attachment.download_url" download="download">Download</a>
+        <a class="file-download" v-bind:href="message.attachment.download_url" aria-label="Download file" download="download">Download</a>
       </div>
-      <div class="rich-caption" v-if="message.message_text">{{ message.message_text }}</div>
+      <div class="rich-caption" v-if="message.message_text">
+        <template v-for="(part, index) in linkParts(message.message_text)" v-bind:key="index">
+          <a v-if="part.kind === 'link'" v-bind:href="part.href" target="_blank" rel="noopener noreferrer">{{ part.value }}</a>
+          <span v-else>{{ part.value }}</span>
+        </template>
+        <ChatLinkCard v-if="firstLink(message.message_text)" v-bind:url="firstLink(message.message_text)" />
+      </div>
     </div>
 
     <div v-else-if="message.message_type === 'contact' && message.contact" class="contact-card">
@@ -110,17 +129,27 @@
         <a v-if="part.kind === 'link'" v-bind:href="part.href" target="_blank" rel="noopener noreferrer">{{ part.value }}</a>
         <span v-else>{{ part.value }}</span>
       </template>
+      <ChatLinkCard v-if="firstLink(message.message_text)" v-bind:url="firstLink(message.message_text)" />
     </div>
   </div>
 </template>
 
 <script>
+import ChatLinkCard from '@/components/messages/ChatLinkCard.vue'
+
 export default {
   name: 'MessageRich',
+  components: {
+    ChatLinkCard
+  },
   props: {
     message: {
       type: Object,
       required: true
+    },
+    time: {
+      type: String,
+      default: ''
     }
   },
   data() {
@@ -155,6 +184,23 @@ export default {
         result.push({ kind: 'text', value: text.substring(last), href: '' })
       }
       return result
+    },
+    firstLink(value) {
+      var parts = this.linkParts(value)
+      var i = 0
+      while (i < parts.length) {
+        if (parts[i].kind === 'link') {
+          return parts[i].href
+        }
+        i = i + 1
+      }
+      return ''
+    },
+    playVideo() {
+      var video = this.$refs.videoEl
+      if (video && video.play) {
+        video.play()
+      }
     },
     sizeLabel(size) {
       var value = Number(size || 0)
@@ -223,7 +269,8 @@ export default {
 }
 .sticker-wrap {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   padding: 3px 0;
 }
 .sticker-emoji {
@@ -233,11 +280,24 @@ export default {
 .media-wrap {
   min-width: 0;
 }
+.media-card {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 2px;
+  border-radius: 18px;
+  background: linear-gradient(120deg, #453D89, #7B4FA5 55%, #C8499A);
+  box-shadow: 0 5px 14px rgba(69, 61, 137, 0.2);
+  overflow: hidden;
+}
 .image-button {
+  display: block;
   width: 100%;
   padding: 0;
   border: none;
-  background: transparent;
+  border-radius: 14px;
+  background: #ffffff;
   cursor: pointer;
 }
 .message-image {
@@ -246,18 +306,67 @@ export default {
   max-width: 280px;
   max-height: 220px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: 14px;
 }
-.message-video,
-.message-audio {
+.message-video {
   display: block;
   width: 100%;
   max-width: 280px;
-  margin-top: 3px;
-}
-.message-video {
   max-height: 220px;
-  border-radius: 8px;
+  border-radius: 14px;
+  background: #f8f6ff;
+}
+.video-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  border-radius: 50%;
+  background: rgba(69, 61, 137, 0.78);
+  color: #ffffff;
+  cursor: pointer;
+}
+.video-play:hover {
+  background: rgba(200, 73, 154, 0.86);
+}
+.media-time {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #1f2937;
+  font-size: 9px;
+  font-weight: 700;
+}
+.audio-card {
+  min-width: 200px;
+  max-width: 280px;
+  box-sizing: border-box;
+  padding: 8px 9px;
+  border: 1px solid #ece7f7;
+  border-left: 3px solid #7c6ee6;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #fdfbff 100%);
+  box-shadow: 0 3px 10px rgba(69, 61, 137, 0.07);
+}
+.msg-bubble-own .audio-card {
+  border-color: rgba(255, 255, 255, 0.28);
+  border-left-color: #ffffff;
+  background: rgba(255, 255, 255, 0.14);
+}
+.message-audio {
+  display: block;
+  width: 100%;
+  max-width: 260px;
 }
 .file-name-line,
 .audio-label {
@@ -270,21 +379,36 @@ export default {
 .contact-card {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   min-width: 0;
-  padding: 7px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.12);
+  padding: 8px 9px;
+  border: 1px solid #ece7f7;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #fdfbff 100%);
+  box-shadow: 0 3px 10px rgba(69, 61, 137, 0.07);
+  color: #1f2937;
 }
-.msg-bubble-other .file-card,
-.msg-bubble-other .contact-card {
-  border-color: #d7deea;
-  background: #ffffff;
+.msg-bubble-own .file-card,
+.msg-bubble-own .contact-card {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
 }
 .file-icon,
 .contact-mark {
-  font-size: 20px;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #f8f6ff;
+  font-size: 18px;
+}
+.msg-bubble-own .file-icon,
+.msg-bubble-own .contact-mark {
+  background: rgba(255, 255, 255, 0.18);
 }
 .file-info,
 .contact-copy {
@@ -308,23 +432,32 @@ export default {
 }
 .file-download {
   flex: 0 0 auto;
+  padding: 5px 8px;
+  border: 1px solid #d8cef4;
+  border-radius: 999px;
   font-size: 10px;
   font-weight: 800;
-  text-decoration: underline;
-  color: inherit;
+  text-decoration: none;
+  color: #453d89;
+  background: #ffffff;
+}
+.msg-bubble-own .file-download {
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.16);
 }
 .poll-card {
   width: 100%;
   min-width: 220px;
   box-sizing: border-box;
-  padding: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.1);
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.12);
 }
 .msg-bubble-other .poll-card {
-  border-color: #d7deea;
-  background: #ffffff;
+  border-color: #e7dff8;
+  background: linear-gradient(180deg, #ffffff 0%, #fbf9ff 100%);
 }
 .poll-question {
   margin-bottom: 3px;

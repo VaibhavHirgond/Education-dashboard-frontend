@@ -46,13 +46,17 @@ export default {
       videoReady: false,
       capturedUrl: '',
       capturedBlob: null,
-      cameraCount: 0
+      cameraCount: 0,
+      startTimer: null,
+      captureTimer: null
     }
   },
   mounted() {
     this.start()
   },
   beforeUnmount() {
+    window.clearTimeout(this.captureTimer)
+    this.captureTimer = null
     this.stopTracks()
   },
   methods: {
@@ -74,10 +78,14 @@ export default {
     },
     setError(message) {
       this.stopTracks()
+      window.clearTimeout(this.captureTimer)
+      this.captureTimer = null
       this.errorMessage = message || 'Camera is not available here. Choose a photo instead.'
       this.videoReady = false
     },
     stopTracks() {
+      window.clearTimeout(this.startTimer)
+      this.startTimer = null
       if (!this.stream) {
         return
       }
@@ -96,6 +104,11 @@ export default {
       this.capturedUrl = ''
       this.capturedBlob = null
       this.videoReady = false
+      this.startTimer = window.setTimeout(function() {
+        if (!self.videoReady && !self.capturedBlob) {
+          self.setError('Camera did not start in time. Check the camera connection, or choose a photo instead.')
+        }
+      }, 9000)
       if (window.isSecureContext === false) {
         this.setError('Camera requires HTTPS or localhost. Open this page over a secure connection, or choose a photo instead.')
         return
@@ -113,6 +126,8 @@ export default {
           }
           video.srcObject = stream
           video.onloadedmetadata = function() {
+            window.clearTimeout(self.startTimer)
+            self.startTimer = null
             self.videoReady = true
           }
           var playing = video.play()
@@ -176,7 +191,14 @@ export default {
         this.setError('This browser cannot capture a photo. Choose a photo instead.')
         return
       }
+      this.captureTimer = window.setTimeout(function() {
+        if (!self.capturedBlob) {
+          self.setError('Camera capture timed out. Try again, or choose a photo instead.')
+        }
+      }, 6000)
       canvas.toBlob(function(blob) {
+        window.clearTimeout(self.captureTimer)
+        self.captureTimer = null
         if (!blob) {
           self.setError('Unable to capture a photo. Choose a photo instead.')
           return
@@ -200,10 +222,14 @@ export default {
       this.$emit('captured', this.capturedBlob)
     },
     chooseFile() {
+      window.clearTimeout(this.captureTimer)
+      this.captureTimer = null
       this.stopTracks()
       this.$emit('fallback')
     },
     cancel() {
+      window.clearTimeout(this.captureTimer)
+      this.captureTimer = null
       this.stopTracks()
       this.$emit('cancel')
     }
@@ -230,13 +256,13 @@ export default {
 .camera-panel {
   position: relative;
   width: min(420px, 100%);
-  max-height: 92vh;
+  max-height: 92dvh;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  padding: 12px;
+  padding: 14px;
   border: 1px solid #d7deea;
-  border-radius: 14px;
+  border-radius: 18px;
   background: #ffffff;
   color: #1f2937;
   box-shadow: 0 18px 44px rgba(15, 23, 42, 0.15);
@@ -252,10 +278,10 @@ export default {
   font-weight: 800;
 }
 .camera-close {
-  width: 26px;
-  height: 26px;
+  width: 44px;
+  height: 44px;
   border: 1px solid #d7deea;
-  border-radius: 7px;
+  border-radius: 50%;
   background: #f1f3f9;
   color: #64748b;
   font-size: 16px;
@@ -273,8 +299,8 @@ export default {
 .camera-photo {
   display: block;
   width: 100%;
-  max-height: 52vh;
-  border-radius: 10px;
+  max-height: 52dvh;
+  border-radius: 12px;
   background: #eef2f7;
   object-fit: cover;
 }
@@ -315,8 +341,9 @@ export default {
 }
 .camera-secondary,
 .camera-primary {
-  border-radius: 9px;
-  padding: 8px 12px;
+  min-height: 44px;
+  border-radius: 12px;
+  padding: 8px 14px;
   font-size: 11px;
   font-weight: 800;
   cursor: pointer;
@@ -338,10 +365,11 @@ export default {
 @media (max-width: 520px) {
   .camera-panel {
     padding: 10px;
+    border-radius: 18px;
   }
   .camera-video,
   .camera-photo {
-    max-height: 46vh;
+    max-height: 48dvh;
   }
   .camera-actions,
   .camera-error-actions {
